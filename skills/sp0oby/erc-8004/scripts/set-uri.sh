@@ -43,8 +43,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ -z "$AGENT_ID" ]] && { echo "❌ --agent-id required"; usage; }
-[[ -z "$URI" ]] && { echo "❌ --uri required"; usage; }
+[[ -z "$AGENT_ID" ]] && { echo "--agent-id required"; usage; }
+[[ -z "$URI" ]] && { echo "--uri required"; usage; }
 
 load_network "$NETWORK"
 
@@ -58,35 +58,35 @@ OWNER=$(cast call "$IDENTITY_REGISTRY" "ownerOf(uint256)" "$AGENT_ID" --rpc-url 
 OWNER_ADDR="0x$(echo "$OWNER" | cut -c27-66)"
 
 if [[ "${OWNER_ADDR,,}" != "${WALLET_ADDRESS,,}" ]]; then
-    echo "❌ Not owner of agent $AGENT_ID"
+    echo "Not owner of agent $AGENT_ID"
     echo "   Owner: $OWNER_ADDR"
     echo "   Your wallet: $WALLET_ADDRESS"
     exit 1
 fi
 
 if $DRY_RUN; then
-    echo "🔍 Dry run - simulating..."
+    echo "Dry run - simulating..."
     cast call "$IDENTITY_REGISTRY" "setAgentURI(uint256,string)" "$AGENT_ID" "$URI" --rpc-url "$RPC_URL"
-    echo "✅ Simulation successful"
+    echo "Simulation successful"
     exit 0
 fi
 
-echo "📝 Sending transaction..."
+echo "Sending transaction..."
 TX_HASH=$(cast send "$IDENTITY_REGISTRY" "setAgentURI(uint256,string)" "$AGENT_ID" "$URI" \
     --private-key "$PRIVATE_KEY" \
     --rpc-url "$RPC_URL" \
     --json | jq -r '.transactionHash')
 
-echo "⏳ Waiting for confirmation..."
+echo "Waiting for confirmation..."
 RECEIPT=$(cast receipt "$TX_HASH" --rpc-url "$RPC_URL" --json)
 STATUS=$(echo "$RECEIPT" | jq -r '.status')
 
 if [[ "$STATUS" == "0x1" ]]; then
     echo ""
-    echo "✅ URI updated successfully!"
+    echo "URI updated successfully!"
     echo "   TX: $EXPLORER_URL/tx/$TX_HASH"
 else
-    echo "❌ Transaction failed"
+    echo "Transaction failed"
     echo "   TX: $EXPLORER_URL/tx/$TX_HASH"
     exit 1
 fi

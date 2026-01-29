@@ -7,15 +7,15 @@ CONTRACTS_FILE="$SCRIPT_DIR/../lib/contracts.json"
 
 # Load network configuration
 load_network() {
-    local network="${1:-sepolia}"
+    local network="${1:-mainnet}"
     
     if ! command -v jq &>/dev/null; then
-        echo "❌ jq required. Install: brew install jq"
+        echo "jq required. Install: brew install jq"
         exit 1
     fi
     
     if ! command -v cast &>/dev/null; then
-        echo "❌ cast (foundry) required. Install: curl -L https://foundry.paradigm.xyz | bash"
+        echo "cast (foundry) required. Install: curl -L https://foundry.paradigm.xyz | bash"
         exit 1
     fi
     
@@ -28,7 +28,7 @@ load_network() {
     export VALIDATION_REGISTRY=$(jq -r ".networks.$network.contracts.validationRegistry" "$CONTRACTS_FILE")
     
     if [[ "$CHAIN_ID" == "null" ]]; then
-        echo "❌ Unknown network: $network"
+        echo "Unknown network: $network"
         echo "   Available: $(jq -r '.networks | keys | join(", ")' "$CONTRACTS_FILE")"
         exit 1
     fi
@@ -39,7 +39,7 @@ load_network() {
         if [[ -f "$pk_file" ]]; then
             export PRIVATE_KEY=$(cat "$pk_file")
         else
-            echo "❌ No private key. Set PRIVATE_KEY env or use --key"
+            echo "No private key. Set PRIVATE_KEY env or use --key"
             exit 1
         fi
     fi
@@ -80,7 +80,7 @@ upload_ipfs() {
             -F "file=@$file")
         echo "ipfs://$(echo "$response" | jq -r '.IpfsHash')"
     else
-        echo "❌ Set PINATA_JWT env for IPFS upload"
+        echo "Set PINATA_JWT env for IPFS upload"
         echo "   Or manually upload to: https://app.pinata.cloud/"
         return 1
     fi
