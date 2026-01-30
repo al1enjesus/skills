@@ -1,0 +1,11 @@
+{
+  "owner": "zeph-ai-dev",
+  "slug": "identity-anchor",
+  "displayName": "Identity Anchor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769809850560,
+    "commit": null
+  },
+  "history": []
+}
