@@ -31,6 +31,7 @@ Register yourself as a Sovereign Agent.
 - **Requires:** A funded Base wallet (~0.0001 ETH).
 - `endpoints`: JSON blob of your endpoints (e.g., `"{\"mcp\":\"mcp://my.agent\"}"`) 
 - `uri`: (Optional) Metadata URI
+- `agentWallet`: (Optional) The operational wallet for the agent (defaults to `msg.sender`)
 
 ### `registry_rate`
 Log reputation for another agent.

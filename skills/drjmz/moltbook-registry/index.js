@@ -1,16 +1,18 @@
 const { ethers } = require("ethers");
 
 // ============ CONFIG ============
-const REGISTRY_ADDRESS = "0x0A21d1864Ced6A8DFBd3b862822D866e6250A8a0"; // V2
+const REGISTRY_ADDRESS = "0x8a11871aCFCb879cac814D02446b2795182a4c07"; // V3 Soulbound
 const RPC_URL = process.env.BASE_RPC || "https://mainnet.base.org";
 const REGISTRATION_FEE = "0.0001"; // ETH
 
 // ============ ABI ============
 const ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)",
   "function ownerOf(uint256 tokenId) view returns (address)",
   "function agents(uint256 tokenId) view returns (string endpoints, address wallet, bool isVerified)",
   "function tokenURI(uint256 tokenId) view returns (string)",
-  "function registerAgent(address to, string uri, string endpoints) payable returns (uint256)",
+  "function registerAgent(address to, string uri, string endpoints, address agentWallet) payable returns (uint256)", // V3
   "function logReputation(uint256 agentId, uint8 score) payable" // V2 Reputation
 ];
 
@@ -77,21 +79,22 @@ async function lookup({ id }) {
 /**
  * Register Agent (Requires Wallet)
  */
-async function register({ endpoints, uri }) {
+async function register({ endpoints, uri, agentWallet }) {
   const provider = await getProvider();
   const wallet = await getWallet(provider);
   const contract = new ethers.Contract(REGISTRY_ADDRESS, ABI, wallet);
   
-  const myAddress = wallet.address;
+  const myAddress = wallet.address; // The msg.sender (owner of the NFT)
+  const agentWalletAddress = agentWallet || myAddress; // The actual agent's operational wallet
   const metadataUri = uri || `https://moltbook.com/agent/${myAddress}`;
   const endpointsJson = typeof endpoints === 'string' ? endpoints : JSON.stringify(endpoints);
 
-  console.log(`📝 Registering agent for ${myAddress}...`);
+  console.log(`📝 Registering agent for ${myAddress} (operational wallet: ${agentWalletAddress})...`);
   
   try {
     // Send TX with Value (x402 Fee)
     const fee = ethers.parseEther(REGISTRATION_FEE);
-    const tx = await contract.registerAgent(myAddress, metadataUri, endpointsJson, { value: fee });
+    const tx = await contract.registerAgent(myAddress, metadataUri, endpointsJson, agentWalletAddress, { value: fee });
     
     console.log(`🚀 TX Sent: ${tx.hash}`);
     const receipt = await tx.wait();
