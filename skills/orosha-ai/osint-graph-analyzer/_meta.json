@@ -1,0 +1,11 @@
+{
+  "owner": "orosha-ai",
+  "slug": "osint-graph-analyzer",
+  "displayName": "Osint Graph Analyzer",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1769873304973,
+    "commit": null
+  },
+  "history": []
+}
