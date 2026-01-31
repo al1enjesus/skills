@@ -1,0 +1,11 @@
+{
+  "owner": "okaris",
+  "slug": "inference-sh",
+  "displayName": "inference.sh - generate image, video, audio and post to social media",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769881997654,
+    "commit": null
+  },
+  "history": []
+}
