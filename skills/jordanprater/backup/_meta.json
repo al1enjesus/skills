@@ -1,0 +1,11 @@
+{
+  "owner": "jordanprater",
+  "slug": "backup",
+  "displayName": "OpenClaw Backup",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1769856578186,
+    "commit": null
+  },
+  "history": []
+}
