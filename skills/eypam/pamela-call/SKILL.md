@@ -1,59 +1,75 @@
 ---
-name: pamela-calls
-description: Make AI-powered phone calls with Pamela's voice API. The only voice AI with native phone tree navigation. Create outbound calls, register custom tools for mid-call actions, handle webhooks, and build React UIs. Use when the user wants to make phone calls, integrate voice AI, build IVR systems, navigate phone menus, or automate phone tasks.
+name: pamela-call
+description: Make AI-powered phone calls with Pamela's voice API. Create outbound calls, register custom tools for mid-call actions, handle webhooks, and build React UIs. Use when the user wants to make phone calls, integrate voice AI, build IVR systems, navigate phone menus, or automate phone tasks.
 ---
 
-# Pamela Voice API
+# Pamela Voice API Skill
 
-The only voice AI that actually works with native phone tree navigation.
+Make AI-powered phone calls with native phone tree navigation. **[ThisIsPamela](https://thisispamela.com)** is an enterprise voice AI platform that handles outbound calls, navigates phone trees, and integrates with your apps via SDKs, webhooks, and MCP.
 
-## Resources
+**Jump to:** [Installation](#installation) · [Quick Start](#quick-start) · [Use Cases](#use-cases) · [SDK Reference](#sdk-reference)
 
-- Docs: https://docs.thisispamela.com/
-- Demo: https://demo.thisispamela.com/
-- Example: https://github.com/ThisIsPamela/demo
-- API: https://api.thisispamela.com
-- Live Support: https://discord.gg/8qG32Nzv
+## Prerequisites
 
-## Getting Your API Key
-
-1. Log in at https://app.thisispamela.com
-2. Go to Settings
-3. Click Enterprise Access
-4. Set up billing through Stripe
-5. Copy your API key (starts with `pk_live_`)
-
-Your API key is only shown once. Store it securely.
+- Enterprise subscription (required for API access)
+- API key from your Enterprise account
+- Node.js 18+ (for JS/React) or Python 3.8+ (for Python)
 
 ## Installation
 
-JavaScript/TypeScript:
+**JavaScript/TypeScript:**
 ```bash
 npm install @thisispamela/sdk
 ```
 
-Python:
+**Python:**
 ```bash
 pip install thisispamela
 ```
 
-React:
+**React:**
 ```bash
 npm install @thisispamela/react @thisispamela/sdk
 ```
 
+**CLI:**
+```bash
+npm install -g @thisispamela/cli
+```
+
+**MCP (for MCP-based agents):**
+```bash
+npm install @thisispamela/mcp
+```
+
+**Widget (embeddable, no framework):**
+```bash
+npm install @thisispamela/widget
+```
+
+Latest versions: SDK / CLI / Widget / MCP / Python `1.1.2`, React `1.1.3`.
+
+## Getting Your API Key
+
+1. Sign up for an Enterprise subscription at [app.thisispamela.com](https://app.thisispamela.com)
+2. Navigate to Settings → Enterprise Access
+3. Set up billing through Stripe
+4. Click "Create API Key"
+5. Save immediately - the full key (starts with `pk_live_`) is only shown once
+
 ## Quick Start
 
-**Note**: Phone numbers must be in E.164 format (e.g., `+1234567890`).
+**Note:** Phone numbers must be in E.164 format (e.g., `+1234567890`).
 
-JavaScript:
+### JavaScript
+
 ```typescript
 import { PamelaClient } from '@thisispamela/sdk';
 
 const client = new PamelaClient({ apiKey: 'pk_live_...' });
 
 const call = await client.createCall({
-  to: '+1234567890', // E.164 format required
+  to: '+1234567890',
   task: 'Call the pharmacy and check if my prescription is ready',
   voice: 'female',
   agent_name: 'Pamela',
@@ -63,7 +79,8 @@ const status = await client.getCall(call.id);
 console.log(status.transcript);
 ```
 
-Python:
+### Python
+
 ```python
 from pamela import PamelaClient
 
@@ -80,38 +97,82 @@ status = client.get_call(call["id"])
 print(status["transcript"])
 ```
 
+### CLI
+
+```bash
+export PAMELA_API_KEY="pk_live_..."
+
+thisispamela create-call \
+  --to "+1234567890" \
+  --task "Call the pharmacy and check if my prescription is ready"
+```
+
 ## Use Cases
 
-- **Appointment Scheduling**: "Call the dentist and schedule a cleaning for next week"
-- **Order Status**: "Call the pharmacy and check if my prescription is ready"
-- **Customer Support**: Navigate IVR menus to reach the right department
-- **Information Gathering**: "Call the restaurant and ask about their vegetarian options"
-- **Follow-ups**: Automate callback reminders and confirmations
-- **IVR Navigation**: Handle complex phone trees, holds, and transfers automatically
+| Use Case | Example Task |
+|----------|--------------|
+| Appointment Scheduling | "Call the dentist and schedule a cleaning for next week" |
+| Order Status | "Call the pharmacy and check if my prescription is ready" |
+| Customer Support | "Navigate the IVR menu to reach billing department" |
+| Information Gathering | "Call the restaurant and ask about vegetarian options" |
+| Follow-ups | "Call to confirm the appointment for tomorrow at 2pm" |
+| IVR Navigation | "Navigate the phone menu to reach a human representative" |
 
 ## Key Features
 
-- Phone tree navigation: navigates IVR menus, holds, and transfers automatically
-- Custom tools: register tools the AI can call mid-conversation
-- Real-time transcripts: webhook updates as the call progresses
-- React components: pre-built UI for call status and transcripts
+- **Phone tree navigation** - Automatically navigates IVR menus, handles holds and transfers
+- **Custom tools** - Register tools the AI can call mid-conversation
+- **Real-time transcripts** - Webhook updates as the call progresses
+- **React components** - Pre-built UI for call status and transcripts
 
-## SDKs
+## SDK Reference
 
-- JavaScript/TypeScript: see `javascript-sdk.md`
-- Python: see `python-sdk.md`
-- React components: see `react-components.md`
+For detailed SDK documentation:
+
+- **[JavaScript SDK](https://docs.thisispamela.com/sdk/javascript)** - Full JS/TS reference
+- **[Python SDK](https://docs.thisispamela.com/sdk/python)** - Full Python reference
+- **[React Components](https://docs.thisispamela.com/sdk/react)** - Component library (v1.1.3)
+- **[Widget](https://docs.thisispamela.com/sdk/widget)** - Embeddable widget for any website
+- **[MCP Server](https://docs.thisispamela.com/sdk/mcp)** - MCP tools for AI assistants
+- **[CLI](https://docs.thisispamela.com/sdk/cli)** - Command-line reference
 
 ## Webhooks
 
-See `webhooks.md` for webhook handling and signature verification.
+Pamela sends webhooks for call lifecycle events:
 
-## Tool Execution
+- `call.queued` - Call created and queued
+- `call.started` - Call connected
+- `call.completed` - Call finished successfully
+- `call.failed` - Call failed
+- `call.transcript_update` - New transcript entries
 
-Register custom tools the AI can invoke during calls. See `tools.md`.
+Verify webhook signatures with the `X-Pamela-Signature` header.
 
 ## Billing
 
-- $0.10/minute, no upfront fees
-- Minimum 1 minute per call
-- Only connected calls are billed
+- **$0.10/minute** for API usage
+- **Minimum 1 minute** per call
+- **Only connected calls** are billed
+- Enterprise subscription required
+
+## Troubleshooting
+
+**"Invalid API key"**
+- Verify key starts with `pk_live_`
+- Check key is active in Enterprise panel
+
+**"403 Forbidden"**
+- Enterprise subscription required
+- Check subscription status at app.thisispamela.com
+
+**"Invalid phone number"**
+- Use E.164 format with country code: `+1234567890`
+
+## Resources
+
+- **Website:** https://thisispamela.com
+- **Docs:** https://docs.thisispamela.com
+- **Demo:** https://demo.thisispamela.com
+- **API:** https://api.thisispamela.com
+- **Discord (live support):** https://discord.gg/cJj5CK8V
+- **Email:** support@thisispamela.com
