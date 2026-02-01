@@ -1,0 +1,11 @@
+{
+  "owner": "keithvassallomt",
+  "slug": "openclaw-nextcloud",
+  "displayName": "Openclaw Nextcloud",
+  "latest": {
+    "version": "0.1.3",
+    "publishedAt": 1769988540738,
+    "commit": null
+  },
+  "history": []
+}
