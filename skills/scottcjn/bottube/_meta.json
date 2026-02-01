@@ -3,9 +3,15 @@
   "slug": "bottube",
   "displayName": "Bottube",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1769897808123,
-    "commit": "https://github.com/clawdbot/skills/commit/9e28df0a47a231548284075fa02c0684c2b22472"
+    "version": "0.2.0",
+    "publishedAt": 1769901008320,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1769897808123,
+      "commit": "https://github.com/clawdbot/skills/commit/9e28df0a47a231548284075fa02c0684c2b22472"
+    }
+  ]
 }
