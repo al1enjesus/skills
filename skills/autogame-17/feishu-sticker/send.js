@@ -2,9 +2,22 @@ const fs = require('fs');
 const path = require('path');
 const { program } = require('commander');
 const FormData = require('form-data');
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') }); // Load workspace .env
+const { execSync } = require('child_process');
+// Try to resolve ffmpeg-static from workspace root
+let ffmpegPath;
+try {
+    ffmpegPath = require('ffmpeg-static');
+} catch (e) {
+    try {
+        ffmpegPath = require(path.resolve(__dirname, '../../node_modules/ffmpeg-static'));
+    } catch (e2) {
+        console.warn('Warning: ffmpeg-static not found. GIF conversion will fail.');
+    }
+}
 
-// Credentials from environment
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
+
+// Credentials
 const APP_ID = process.env.FEISHU_APP_ID;
 const APP_SECRET = process.env.FEISHU_APP_SECRET;
 
@@ -18,10 +31,7 @@ async function getToken() {
         const res = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                app_id: APP_ID,
-                app_secret: APP_SECRET
-            })
+            body: JSON.stringify({ app_id: APP_ID, app_secret: APP_SECRET })
         });
         const data = await res.json();
         return data.tenant_access_token;
@@ -36,17 +46,6 @@ async function uploadImage(token, filePath) {
     formData.append('image_type', 'message');
     formData.append('image', fs.createReadStream(filePath));
 
-    // Calculate length for Content-Length header (required by some fetch implementations with streams)
-    // Actually, form-data submit might be easier with axios, but let's try fetch first or switch to native https if needed.
-    // To allow `fetch` with FormData in Node, we might need a specific way.
-    // Let's use `axios` if available, or just use the `form-data` package's submit method logic?
-    // Wait, modern Node `fetch` can handle FormData? Not natively with fs streams perfectly in all versions.
-    // Let's use a simpler approach: `curl` via child_process for upload might be more robust if deps are missing.
-    // BUT, I can install `axios` and `form-data` easily.
-    
-    // Let's try constructing the request manually or using a helper.
-    // Actually, for simplicity in this environment, let's use `axios` + `form-data`.
-    
     try {
         const axios = require('axios');
         const res = await axios.post('https://open.feishu.cn/open-apis/im/v1/images', formData, {
@@ -64,17 +63,15 @@ async function uploadImage(token, filePath) {
 
 async function sendSticker(options) {
     const token = await getToken();
-    
-    // 1. Pick a file
-    const stickerDir = path.resolve('/home/crishaocredits/.openclaw/media/stickers'); // Absolute path to match environment
+    const stickerDir = path.resolve('/home/crishaocredits/.openclaw/media/stickers');
     let selectedFile;
 
     if (options.file) {
         selectedFile = path.resolve(options.file);
     } else {
-        // Random pick
         try {
-            const files = fs.readdirSync(stickerDir).filter(f => /\.(jpg|png|gif|webp)$/i.test(f));
+            // Prioritize WebP, allow others
+            const files = fs.readdirSync(stickerDir).filter(f => /\.(webp|jpg|png|gif)$/i.test(f));
             if (files.length === 0) {
                 console.error('No stickers found in', stickerDir);
                 process.exit(1);
@@ -87,15 +84,37 @@ async function sendSticker(options) {
         }
     }
 
+    // GIF -> WebP Conversion
+    if (selectedFile.toLowerCase().endsWith('.gif') && ffmpegPath) {
+        console.log('Detected GIF. Converting to WebP (Efficiency Protocol)...');
+        const webpPath = selectedFile.replace(/\.gif$/i, '.webp');
+        try {
+            execSync(`${ffmpegPath} -i "${selectedFile}" -c:v libwebp -lossless 0 -q:v 75 -loop 0 -an -vsync 0 -y "${webpPath}"`, { stdio: 'pipe' });
+            
+            if (fs.existsSync(webpPath)) {
+                // Determine if we should delete the original
+                // If it's in our sticker stash, yes. If it's a user-provided path outside, maybe/maybe not.
+                // Assuming safer to replace for protocol compliance.
+                try {
+                    fs.unlinkSync(selectedFile);
+                    console.log('Original GIF deleted.');
+                } catch (delErr) {
+                    console.warn('Could not delete original GIF:', delErr.message);
+                }
+                selectedFile = webpPath;
+            }
+        } catch (e) {
+            console.error('Conversion failed, proceeding with original:', e.message);
+        }
+    }
+
     console.log(`Sending sticker: ${selectedFile}`);
 
-    // 2. Upload (or check cache? For now, simple upload)
-    // Note: To optimize, we should cache image_keys mapped to file hashes/names.
-    // Let's implement a simple JSON cache.
+    // Caching
     const cachePath = path.join(__dirname, 'image_key_cache.json');
     let cache = {};
     if (fs.existsSync(cachePath)) {
-        cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        try { cache = JSON.parse(fs.readFileSync(cachePath, 'utf8')); } catch (e) {}
     }
 
     const fileName = path.basename(selectedFile);
@@ -104,17 +123,25 @@ async function sendSticker(options) {
     if (!imageKey) {
         console.log('Uploading image...');
         imageKey = await uploadImage(token, selectedFile);
-        cache[fileName] = imageKey;
-        fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+        if (imageKey) {
+            cache[fileName] = imageKey;
+            fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+        }
     } else {
         console.log('Using cached image_key:', imageKey);
     }
 
-    // 3. Send
+    // Determine receive_id_type
+    let receiveIdType = 'open_id';
+    if (options.target.startsWith('oc_')) {
+        receiveIdType = 'chat_id';
+    }
+
+    // Send
     try {
         const axios = require('axios');
         const res = await axios.post(
-            'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id',
+            `https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`,
             {
                 receive_id: options.target,
                 msg_type: 'image',
@@ -136,7 +163,46 @@ async function sendSticker(options) {
 
 program
   .requiredOption('-t, --target <open_id>', 'Target User Open ID')
-  .option('-f, --file <path>', 'Specific image file path (optional, default random)')
+  .option('-f, --file <path>', 'Specific image file path (optional)')
+  .option('-q, --query <text>', 'Search query (e.g., "angry cat", "happy")')
+  .option('-e, --emotion <emotion>', 'Filter by emotion (e.g., "happy", "sad")')
   .parse(process.argv);
 
-sendSticker(program.opts());
+async function findSticker(options) {
+    if (!options.query && !options.emotion) return null;
+    
+    // Call find.js as a subprocess to leverage its logic
+    try {
+        const findScript = path.join(__dirname, 'find.js');
+        let cmd = `node "${findScript}" --json --random`;
+        if (options.query) cmd += ` --query "${options.query}"`;
+        if (options.emotion) cmd += ` --emotion "${options.emotion}"`;
+        
+        const stdout = execSync(cmd).toString();
+        const result = JSON.parse(stdout);
+        
+        if (result.found && result.sticker && result.sticker.path) {
+            console.log(`Smart match: ${result.sticker.emotion} [${result.sticker.keywords}]`);
+            return result.sticker.path;
+        }
+    } catch (e) {
+        console.warn("Smart search failed, falling back to random:", e.message);
+    }
+    return null;
+}
+
+(async () => {
+    const opts = program.opts();
+    
+    // If query/emotion is provided, try to find a matching sticker
+    if (opts.query || opts.emotion) {
+        const foundPath = await findSticker(opts);
+        if (foundPath) {
+            opts.file = foundPath;
+        } else {
+            console.log("No matching sticker found, falling back to random.");
+        }
+    }
+    
+    await sendSticker(opts);
+})();
