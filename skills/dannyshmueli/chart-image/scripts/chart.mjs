@@ -85,6 +85,7 @@ function parseArgs(args) {
       case '--color-value-field': opts.colorValueField = next; i++; break;
       case '--y-category-field': opts.yCategoryField = next; i++; break;
       case '--color-scheme': opts.colorScheme = next; i++; break;
+      case '--x-type': opts.xType = next; i++; break;  // ordinal, temporal, quantitative
     }
   }
   
@@ -657,12 +658,13 @@ function buildSpec(opts) {
   }
   
   // Base layer - the main chart
+  const xAxisType = opts.xType || 'ordinal';  // ordinal (default), temporal, quantitative
   const mainLayer = {
     mark: markConfig[opts.type] || markConfig.line,
     encoding: {
       x: {
         field: opts.xField,
-        type: 'ordinal',
+        type: xAxisType,
         title: opts.xTitle || opts.xField,
         axis: { labelAngle: -45 }
       },
