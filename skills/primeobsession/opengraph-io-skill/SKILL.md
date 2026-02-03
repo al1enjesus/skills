@@ -1,6 +1,6 @@
 ---
 name: opengraph-io
-version: 1.3.0
+version: 1.4.0
 description: "Extract web data, capture screenshots, scrape content, and generate AI images via OpenGraph.io. Use when working with URLs (unfurling, previews, metadata), capturing webpage screenshots, scraping HTML content, asking questions about webpages, or generating images (diagrams, icons, social cards, QR codes). Triggers: 'get the OG tags', 'screenshot this page', 'scrape this URL', 'generate a diagram', 'create a social card', 'what does this page say about'."
 homepage: https://www.opengraph.io
 metadata: {"clawdbot":{"emoji":"🔗","requires":{"bins":["curl"],"env":["OPENGRAPH_APP_ID"]},"primaryEnv":"OPENGRAPH_APP_ID","install":[{"id":"mcp","kind":"npm","package":"opengraph-io-mcp","global":true,"bins":["opengraph-io-mcp"],"label":"Install MCP server (optional, for other AI clients)"}]}}
@@ -257,6 +257,8 @@ See [references/mcp-clients.md](references/mcp-clients.md) for client-specific s
 ## More Details
 
 - [references/for-ai-agents.md](references/for-ai-agents.md) — **AI agent reference** (tool schemas, decision trees, patterns)
-- [references/api-reference.md](references/api-reference.md) — Full API documentation
+- [references/api-reference.md](references/api-reference.md) — **Complete API documentation** (all endpoints, parameters, response schemas)
+- [references/platform-support.md](references/platform-support.md) — **Platform support guide** (YouTube, Vimeo, TikTok, social media, e-commerce)
+- [references/troubleshooting.md](references/troubleshooting.md) — **Troubleshooting guide** (common errors, debugging tips)
 - [references/image-generation.md](references/image-generation.md) — Image presets, styles, templates
 - [references/mcp-clients.md](references/mcp-clients.md) — MCP client configurations
