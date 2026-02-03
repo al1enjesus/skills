@@ -29,7 +29,23 @@ test -f {baseDir}/bilibili-monitor.json && echo "CONFIG_EXISTS" || echo "CONFIG_
 ```
 等待用户回复，保存为变量 `COOKIES`
 
-**第2步：询问 AI 点评服务**
+**第2步：询问 B站 API 代理（新增）**
+```
+是否需要配置 B站 API 代理？
+（仅海外部署需要，中国大陆用户选2跳过）
+1 = 是（需要填写代理地址）
+2 = 否
+请回复数字：
+```
+- 如果选 1 → 询问代理地址：
+```
+请提供 B站 API 代理地址：
+（格式：http://你的服务器IP:端口）
+```
+保存为 `PROXY_API`
+- 如果选 2 → `PROXY_API` 留空
+
+**第3步：询问 AI 点评服务**
 ```
 是否需要 AI 点评功能？（使用 OpenRouter）
 1 = 是（需要 OpenRouter API Key）
@@ -38,7 +54,7 @@ test -f {baseDir}/bilibili-monitor.json && echo "CONFIG_EXISTS" || echo "CONFIG_
 ```
 等待用户回复
 
-**第3步：如果选了 1（使用 AI 点评）**
+**第4步：如果选了 1（使用 AI 点评）**
 ```
 请选择模型：
 1 = Gemini（推荐，便宜快速）
@@ -53,32 +69,35 @@ test -f {baseDir}/bilibili-monitor.json && echo "CONFIG_EXISTS" || echo "CONFIG_
 ```
 保存为 `OPENROUTER_KEY` 和 `MODEL`
 
-**第4步：询问发件邮箱**
+**第5步：询问发件邮箱**
 ```
 请提供 Gmail 发件邮箱：
 ```
 等待用户回复，保存为 `SMTP_EMAIL`
 
-**第5步：询问应用密码**
+**第6步：询问应用密码**
 ```
 请提供 Gmail 应用密码（16位）：
 （获取：https://myaccount.google.com/apppasswords）
 ```
 保存为 `SMTP_PASSWORD`
 
-**第6步：询问收件人**
+**第7步：询问收件人**
 ```
 请提供收件人邮箱（多个用逗号分隔）：
 ```
 保存为 `RECIPIENTS`
 
-**第7步：生成配置文件**
+**第8步：生成配置文件**
 
 根据收集的信息创建配置文件：
 ```bash
 cat > {baseDir}/bilibili-monitor.json << 'EOF'
 {
-  "bilibili": {"cookies": "COOKIES值"},
+  "bilibili": {
+    "cookies": "COOKIES值",
+    "proxy_api": "PROXY_API值或空"
+  },
   "ai": {
     "openrouter_key": "OPENROUTER_KEY值或空",
     "model": "MODEL值"
@@ -113,9 +132,9 @@ python3 {baseDir}/send_email.py --config {baseDir}/bilibili-monitor.json --body-
 
 | 用户选择 | model 值 |
 |---------|---------|
-| 1 / Gemini | google/gemini-2.5-flash-preview |
+| 1 / Gemini | google/gemini-3-flash-preview |
 | 2 / Claude | anthropic/claude-sonnet-4.5 |
-| 3 / GPT | openai/gpt-4.1-mini |
+| 3 / GPT | openai/gpt-5.2-chat |
 | 4 / DeepSeek | deepseek/deepseek-chat-v3-0324 |
 
 ## 配置文件示例
@@ -126,5 +145,5 @@ python3 {baseDir}/send_email.py --config {baseDir}/bilibili-monitor.json --body-
 
 **B站 AI 总结 API 地区限制：**
 - 该 API 仅限中国大陆 IP 访问
-- 海外部署无法获取 B站官方 AI 总结（其他功能正常）
-- 如需完整功能，请部署在中国服务器或配置中国代理
+- 海外部署需要配置 `proxy_api` 指向中国服务器的代理
+- 中国大陆用户无需配置代理，直接使用即可

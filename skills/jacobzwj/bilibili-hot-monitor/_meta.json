@@ -3,11 +3,16 @@
   "slug": "bilibili-hot-monitor",
   "displayName": "B站热门视频监控",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1770120697141,
-    "commit": "https://github.com/clawdbot/skills/commit/14d2e503f45a13aee30c7e51cbf8787b30cf6f15"
+    "version": "1.0.11",
+    "publishedAt": 1770145640580,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1770120697141,
+      "commit": "https://github.com/clawdbot/skills/commit/14d2e503f45a13aee30c7e51cbf8787b30cf6f15"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1770104882830,

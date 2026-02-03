@@ -36,7 +36,7 @@ cp bilibili-monitor.example.json bilibili-monitor.json
   },
   "ai": {
     "openrouter_key": "你的OpenRouter API Key（可选）",
-    "model": "google/gemini-2.5-flash-preview"
+    "model": "google/gemini-3-flash-preview"
   },
   "email": {
     "smtp_email": "your-email@gmail.com",
@@ -119,9 +119,9 @@ bilibili-monitor/
 
 | 模型 | model 值 | 特点 |
 |------|---------|------|
-| Gemini | google/gemini-2.5-flash-preview | 便宜快速，推荐 |
+| Gemini | google/gemini-3-flash-preview | 便宜快速，推荐 |
 | Claude | anthropic/claude-sonnet-4.5 | 高质量 |
-| GPT | openai/gpt-4.1-mini | OpenAI |
+| GPT | openai/gpt-5.2-chat | OpenAI |
 | DeepSeek | deepseek/deepseek-chat-v3-0324 | 性价比 |
 
 ### Gmail配置
@@ -130,14 +130,35 @@ bilibili-monitor/
 1. 访问 https://myaccount.google.com/apppasswords
 2. 生成16位应用密码
 
+## 🌍 海外部署（代理配置）
+
+B站 AI 总结 API **仅限中国大陆 IP 访问**。海外服务器需要配置代理。
+
+### 方案：部署代理服务器
+
+1. 在中国大陆服务器上部署 `bilibili_proxy_server.py`
+2. 在配置文件中设置 `proxy_api`
+
+```json
+{
+  "bilibili": {
+    "cookies": "...",
+    "proxy_api": "http://你的中国服务器IP:5000/bilibili/ai_summary"
+  }
+}
+```
+
+### 代理服务器部署
+
+详见下方【广州服务器部署指南】
+
 ## ⚠️ 注意事项
 
-1. **⚠️ 地区限制（重要）**：B站 AI 总结 API **仅限中国大陆 IP 访问**
-   - 🇨🇳 中国大陆：正常使用
-   - 🌍 海外部署：无法获取 B站 AI 总结（可正常获取视频数据和使用 OpenRouter 点评）
-   - 解决方案：配置中国代理或部署在中国服务器
+1. **⚠️ 地区限制**：B站 AI 总结 API 仅限中国大陆 IP
+   - 🇨🇳 中国大陆用户：直接使用，无需配置 `proxy_api`
+   - 🌍 海外用户：配置 `proxy_api` 指向中国服务器
 
-2. **API频率限制**：请求间隔建议 >= 3秒，避免触发B站限制
+2. **API频率限制**：请求间隔建议 >= 3秒
 3. **Cookie有效期**：SESSDATA约1-3个月，过期需重新获取
 4. **AI总结可用性**：并非所有视频都有官方AI总结
 

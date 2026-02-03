@@ -27,6 +27,42 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='repla
 from bilibili_api import BilibiliAPI, format_duration, format_number, format_timestamp
 
 
+def get_ai_summary_via_proxy(proxy_api: str, bvid: str, cid: int, up_mid: int, cookies: str) -> dict | None:
+    """
+    通过代理 API 获取 B站 AI 总结（用于海外服务器）
+    
+    Args:
+        proxy_api: 代理 API 地址，如 http://your-server:5000/bilibili/ai_summary
+        bvid: 视频 BV 号
+        cid: 视频 cid
+        up_mid: UP主 mid
+        cookies: B站 cookies 字符串
+    
+    Returns:
+        AI 总结数据，如果失败返回 None
+    """
+    try:
+        response = requests.get(
+            proxy_api,
+            params={
+                "bvid": bvid,
+                "cid": cid,
+                "up_mid": up_mid,
+                "cookies": cookies,
+            },
+            timeout=30,
+        )
+        
+        if response.status_code != 200:
+            print(f"  [WARNING] 代理 API 错误: {response.status_code}")
+            return None
+        
+        return response.json()
+    except Exception as e:
+        print(f"  [WARNING] 代理 API 调用失败: {e}")
+        return None
+
+
 def call_openrouter(api_key: str, model: str, prompt: str) -> str:
     """
     调用 OpenRouter API 生成内容
@@ -214,7 +250,9 @@ def generate_report(
     num_videos: int = 20,
     delay: float = 1.0,
     openrouter_key: str = "",
-    model: str = "google/gemini-2.5-flash-preview",
+    model: str = "google/gemini-3-flash-preview",
+    proxy_api: str = "",
+    cookies_str: str = "",
 ) -> str:
     """
     生成热门视频报告
@@ -265,11 +303,24 @@ def generate_report(
         ai_outline = []
         try:
             time.sleep(3.0)  # AI 总结 API 请求前等待 3 秒（避免触发 B站风控）
-            summary_data = api.get_ai_summary(
-                bvid=bvid,
-                cid=video.get("cid", 0),
-                up_mid=owner["mid"]
-            )
+            
+            # 如果配置了代理 API，通过代理获取 AI 总结
+            if proxy_api:
+                summary_data = get_ai_summary_via_proxy(
+                    proxy_api=proxy_api,
+                    bvid=bvid,
+                    cid=video.get("cid", 0),
+                    up_mid=owner["mid"],
+                    cookies=cookies_str,
+                )
+            else:
+                # 直接调用 B站 API（仅限中国大陆 IP）
+                summary_data = api.get_ai_summary(
+                    bvid=bvid,
+                    cid=video.get("cid", 0),
+                    up_mid=owner["mid"]
+                )
+            
             if summary_data:
                 model_result = summary_data.get("model_result")
                 result_type = model_result.get("result_type", -1) if model_result else -1
@@ -497,7 +548,7 @@ def main():
     # AI 点评相关参数
     parser.add_argument("--openrouter-key", default="", help="OpenRouter API Key（用于生成 AI 点评）")
     parser.add_argument("--model", default="", 
-                        help="OpenRouter 模型名称（默认从配置文件读取，或 google/gemini-2.5-flash-preview）")
+                        help="OpenRouter 模型名称（默认从配置文件读取，或 google/gemini-3-flash-preview）")
 
     args = parser.parse_args()
 
@@ -529,7 +580,10 @@ def main():
     # AI 配置（优先使用命令行参数，其次配置文件）
     ai_config = config.get('ai', {})
     openrouter_key = args.openrouter_key or ai_config.get('openrouter_key', '')
-    model = args.model or ai_config.get('model', 'google/gemini-2.5-flash-preview')
+    model = args.model or ai_config.get('model', 'google/gemini-3-flash-preview')
+    
+    # B站 API 代理配置（海外服务器使用）
+    proxy_api = config.get('bilibili', {}).get('proxy_api', '')
     
     # 创建 API 客户端（传入所有 cookies 以确保完整性）
     api = BilibiliAPI(
@@ -552,6 +606,8 @@ def main():
             delay=args.delay,
             openrouter_key=openrouter_key,
             model=model,
+            proxy_api=proxy_api,
+            cookies_str=cookies_str,
         )
     except Exception as e:
         print(f"[ERROR] 生成报告失败: {e}")
