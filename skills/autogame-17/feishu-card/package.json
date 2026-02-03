@@ -1,10 +1,10 @@
 {
   "name": "feishu-card",
-  "version": "1.3.1",
-  "description": "Send rich interactive cards to Feishu. v1.3.0 forces strict card rendering.",
+  "version": "1.4.6",
+  "description": "Send rich interactive cards to Feishu. v1.4.1 adds atomic file writes for stability.",
   "main": "send.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test.js"
   },
   "keywords": [],
   "author": "",

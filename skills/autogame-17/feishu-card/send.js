@@ -1,79 +1,23 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const { program } = require('commander');
 const path = require('path');
 const crypto = require('crypto');
-require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') }); // Load workspace .env
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'), quiet: true }); // Load workspace .env
 
-// Credentials from environment
-const APP_ID = process.env.FEISHU_APP_ID;
-const APP_SECRET = process.env.FEISHU_APP_SECRET;
-const TOKEN_CACHE_FILE = path.resolve(__dirname, '../../memory/feishu_token.json');
+// Import shared client (Refactored Cycle #51396)
+const { getToken, fetchWithRetry } = require('../common/feishu-client.js');
+
 const IMAGE_KEY_CACHE_FILE = path.resolve(__dirname, '../../memory/feishu_image_keys.json');
 
-if (!APP_ID || !APP_SECRET) {
-    console.error('Error: FEISHU_APP_ID or FEISHU_APP_SECRET not set.');
-    process.exit(1);
-}
-
-// Helper: Fetch with exponential backoff retry
-async function fetchWithRetry(url, options, retries = 3) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const res = await fetch(url, options);
-            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-            return res;
-        } catch (e) {
-            if (i === retries - 1) throw e;
-            const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
-            console.warn(`Fetch failed (${e.message}). Retrying in ${delay}ms...`);
-            await new Promise(r => setTimeout(r, delay));
-        }
-    }
-}
-
-async function getToken() {
-    try {
-        if (fs.existsSync(TOKEN_CACHE_FILE)) {
-            const cached = JSON.parse(fs.readFileSync(TOKEN_CACHE_FILE, 'utf8'));
-            const now = Math.floor(Date.now() / 1000);
-            if (cached.expire > now + 60) return cached.token;
-        }
-    } catch (e) {}
-
-    try {
-        const res = await fetchWithRetry('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ app_id: APP_ID, app_secret: APP_SECRET })
-        });
-        const data = await res.json();
-        if (!data.tenant_access_token) throw new Error(`No token returned: ${JSON.stringify(data)}`);
-
-        try {
-            const cacheData = {
-                token: data.tenant_access_token,
-                expire: Math.floor(Date.now() / 1000) + data.expire 
-            };
-            fs.writeFileSync(TOKEN_CACHE_FILE, JSON.stringify(cacheData, null, 2));
-        } catch (e) {
-            console.error('Failed to cache token:', e.message);
-        }
-
-        return data.tenant_access_token;
-    } catch (e) {
-        console.error('Failed to get token:', e.message);
-        process.exit(1);
-    }
-}
-
 async function uploadImage(token, filePath) {
+    let fileBuffer;
     let fileHash;
     try {
-        const fileBuffer = fs.readFileSync(filePath);
+        fileBuffer = fs.readFileSync(filePath);
         fileHash = crypto.createHash('md5').update(fileBuffer).digest('hex');
     } catch (e) {
-        console.error('Error reading image file:', e.message);
-        process.exit(1);
+        throw new Error(`Error reading image file: ${e.message}`);
     }
 
     let cache = {};
@@ -90,8 +34,7 @@ async function uploadImage(token, filePath) {
     
     const formData = new FormData();
     formData.append('image_type', 'message');
-    const fileContent = fs.readFileSync(filePath);
-    const blob = new Blob([fileContent]); 
+    const blob = new Blob([fileBuffer]); 
     formData.append('image', blob, path.basename(filePath));
 
     try {
@@ -106,12 +49,15 @@ async function uploadImage(token, filePath) {
         
         const imageKey = data.data.image_key;
         cache[fileHash] = imageKey;
-        try { fs.writeFileSync(IMAGE_KEY_CACHE_FILE, JSON.stringify(cache, null, 2)); } catch(e) {}
+        try { 
+            const cacheDir = path.dirname(IMAGE_KEY_CACHE_FILE);
+            if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+            fs.writeFileSync(IMAGE_KEY_CACHE_FILE, JSON.stringify(cache, null, 2)); 
+        } catch(e) {}
         
         return imageKey;
     } catch (e) {
-        console.error('Image upload failed:', e.message);
-        process.exit(1);
+        throw new Error(`Image upload failed: ${e.message}`);
     }
 }
 
@@ -133,67 +79,81 @@ function buildCardContent(elements, title, color) {
 }
 
 async function sendCard(options) {
-    const token = await getToken();
-    const elements = [];
-    
-    if (options.imagePath) {
-        const imageKey = await uploadImage(token, options.imagePath);
-        elements.push({
-            tag: 'img',
-            img_key: imageKey,
-            alt: { tag: 'plain_text', content: options.imageAlt || 'Image' },
-            mode: 'fit_horizontal'
-        });
-    }
-
-    let contentText = '';
-    if (options.textFile) {
-        try { contentText = fs.readFileSync(options.textFile, 'utf8'); } catch (e) {
-            console.error(`Failed to read file: ${options.textFile}`);
-            process.exit(1);
-        }
-    } else if (options.text) {
-        contentText = options.text.replace(/\\n/g, '\n');
-    }
-
-    if (contentText) {
-        elements.push({
-            tag: 'div',
-            text: {
-                tag: 'lark_md',
-                content: contentText
-            }
-        });
-    }
-
-    if (options.buttonText && options.buttonUrl) {
-        elements.push({
-            tag: 'action',
-            actions: [{
-                tag: 'button',
-                text: { tag: 'plain_text', content: options.buttonText },
-                type: 'primary',
-                multi_url: { url: options.buttonUrl, pc_url: '', android_url: '', ios_url: '' }
-            }]
-        });
-    }
-
-    const cardObj = buildCardContent(elements, options.title, options.color);
-    
-    let receiveIdType = 'open_id';
-    if (options.target.startsWith('oc_')) receiveIdType = 'chat_id';
-    else if (options.target.startsWith('ou_')) receiveIdType = 'open_id';
-    else if (options.target.includes('@')) receiveIdType = 'email';
-
-    const messageBody = {
-        receive_id: options.target,
-        msg_type: 'interactive',
-        content: JSON.stringify(cardObj)
-    };
-
-    console.log(`Sending card to ${options.target} (Elements: ${elements.length})`);
-
     try {
+        const token = await getToken();
+        const elements = [];
+        
+        if (options.imagePath) {
+            try {
+                const imageKey = await uploadImage(token, options.imagePath);
+                elements.push({
+                    tag: 'img',
+                    img_key: imageKey,
+                    alt: { tag: 'plain_text', content: options.imageAlt || 'Image' },
+                    mode: 'fit_horizontal'
+                });
+            } catch (imgError) {
+                console.warn(`[Feishu-Card] Image upload failed: ${imgError.message}. Sending text only.`);
+                // Continue without image
+            }
+        }
+
+        let contentText = '';
+        if (options.textFile) {
+            try { contentText = fs.readFileSync(options.textFile, 'utf8'); } catch (e) {
+                throw new Error(`Failed to read file: ${options.textFile}`);
+            }
+        } else if (options.text) {
+            contentText = options.text;
+        }
+
+        if (contentText) {
+            // Use 'markdown' tag directly for better rendering support
+            const markdownElement = {
+                tag: 'markdown',
+                content: contentText
+            };
+            
+            if (options.textAlign) {
+                markdownElement.text_align = options.textAlign;
+            }
+
+            elements.push(markdownElement);
+        }
+
+        if (options.buttonText && options.buttonUrl) {
+            elements.push({
+                tag: 'action',
+                actions: [{
+                    tag: 'button',
+                    text: { tag: 'plain_text', content: options.buttonText },
+                    type: 'primary',
+                    multi_url: { url: options.buttonUrl, pc_url: '', android_url: '', ios_url: '' }
+                }]
+            });
+        }
+
+        const cardObj = buildCardContent(elements, options.title, options.color);
+        
+        let receiveIdType = 'open_id';
+        if (options.target.startsWith('oc_')) receiveIdType = 'chat_id';
+        else if (options.target.startsWith('ou_')) receiveIdType = 'open_id';
+        else if (options.target.includes('@')) receiveIdType = 'email';
+
+        const messageBody = {
+            receive_id: options.target,
+            msg_type: 'interactive',
+            content: JSON.stringify(cardObj)
+        };
+
+        console.log(`Sending card to ${options.target} (Elements: ${elements.length})`);
+
+        if (options.dryRun) {
+            console.log('DRY RUN MODE. Payload:');
+            console.log(JSON.stringify(messageBody, null, 2));
+            return;
+        }
+
         const res = await fetchWithRetry(
             `https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`,
             {
@@ -208,16 +168,30 @@ async function sendCard(options) {
         const data = await res.json();
         
         if (data.code !== 0) {
-             console.warn(`[Feishu-Card] Card send failed (Code: ${data.code}, Msg: ${data.msg}). Attempting fallback to plain text...`);
-             return await sendPlainTextFallback(token, receiveIdType, options.target, contentText, options.title);
+                console.warn(`[Feishu-Card] Card send failed (Code: ${data.code}, Msg: ${data.msg}). Attempting fallback to plain text...`);
+                return await sendPlainTextFallback(token, receiveIdType, options.target, contentText, options.title);
         }
         
         console.log('Success:', JSON.stringify(data.data, null, 2));
 
     } catch (e) {
-        console.error('Network/API Error during Card Send:', e.message);
+        console.error('Error during Card Send:', e.message);
         console.log('[Feishu-Card] Attempting fallback to plain text...');
-        return await sendPlainTextFallback(token, receiveIdType, options.target, contentText, options.title);
+        // Need token for fallback, try to get it again or assume it failed
+        try {
+            const token = await getToken();
+             let contentText = options.text || '';
+             if (options.textFile) try { contentText = fs.readFileSync(options.textFile, 'utf8'); } catch(e){}
+            let receiveIdType = 'open_id';
+            if (options.target.startsWith('oc_')) receiveIdType = 'chat_id';
+            else if (options.target.startsWith('ou_')) receiveIdType = 'open_id';
+            else if (options.target.includes('@')) receiveIdType = 'email';
+            
+            return await sendPlainTextFallback(token, receiveIdType, options.target, contentText, options.title);
+        } catch (fallbackError) {
+             console.error('Fallback failed dramatically:', fallbackError.message);
+             process.exit(1);
+        }
     }
 }
 
@@ -259,46 +233,100 @@ async function sendPlainTextFallback(token, receiveIdType, receiveId, text, titl
     }
 }
 
-program
-  .requiredOption('-t, --target <open_id>', 'Target User Open ID')
-  .option('-x, --text <markdown>', 'Card body text (Markdown)')
-  .option('-f, --text-file <path>', 'Read card body text from file')
-  .option('--title <text>', 'Card header title')
-  .option('--color <color>', 'Header color (blue/red/orange/purple/etc)', 'blue')
-  .option('--button-text <text>', 'Bottom button text')
-  .option('--button-url <url>', 'Bottom button URL')
-  .option('--text-size <size>', 'Text size')
-  .option('--text-align <align>', 'Text alignment')
-  .option('--image-path <path>', 'Path to local image to embed')
-  .option('--image-alt <text>', 'Alt text for image');
 
-program.parse(process.argv);
-const options = program.opts();
 
-async function readStdin() {
-    const { stdin } = process;
-    if (stdin.isTTY) return '';
-    stdin.setEncoding('utf8');
-    let data = '';
-    for await (const chunk of stdin) data += chunk;
-    return data;
-}
+async function resolveContent(options) {
+    let contentText = '';
 
-(async () => {
-    let textContent = options.text;
+    // 1. Priority: --text-file
     if (options.textFile) {
-        // handled in sendCard
-    } else if (!textContent) {
+        try { 
+            contentText = fs.readFileSync(options.textFile, 'utf8'); 
+        } catch (e) {
+            throw new Error(`Failed to read file: ${options.textFile}`);
+        }
+    } 
+    // 2. Fallback: --text
+    else if (options.text) {
+        // Smart Check: Is it a file path?
+        const isPotentialPath = options.text.length < 255 && !options.text.includes('\n') && !/[<>:"|?*]/.test(options.text);
+        
+        if (isPotentialPath && fs.existsSync(options.text)) {
+            console.log(`[Smart Input] Treating --text argument as file path: ${options.text}`);
+            try {
+                contentText = fs.readFileSync(options.text, 'utf8');
+            } catch (e) {
+                 contentText = options.text;
+            }
+        } else {
+            contentText = options.text;
+            // Hardening: BAN complex content via --text (User Request: 2026-02-03)
+            if (contentText.length > 200 || /[\n\`\$\"\\\*]/.test(contentText)) {
+                console.error('\x1b[31m%s\x1b[0m', '⛔ ERROR: Complex content detected in --text argument.');
+                console.error('\x1b[31m%s\x1b[0m', '👉 POLICY ENFORCEMENT: You MUST use --text-file <path> for markdown or long messages.');
+                process.exit(1);
+            }
+            // Warning for edge cases
+            if (contentText.length > 50) {
+                console.warn('\x1b[33m%s\x1b[0m', '⚠️ WARNING: You are passing text via --text flag. Use --text-file for better safety.');
+            }
+        }
+        if (contentText) contentText = contentText.replace(/\\n/g, '\n');
+    } 
+    // 3. Fallback: STDIN
+    else {
         try {
-             const stdinText = await readStdin();
-             if (stdinText.trim()) options.text = stdinText;
+            const { stdin } = process;
+            if (!stdin.isTTY) {
+                stdin.setEncoding('utf8');
+                for await (const chunk of stdin) contentText += chunk;
+            }
         } catch (e) {}
     }
+    
+    return contentText;
+}
 
-    if (!options.text && !options.textFile && !options.imagePath) {
-        console.error('Error: No content provided.');
-        process.exit(1);
-    }
 
-    sendCard(options);
-})();
+// Export for programmatic use
+module.exports = { sendCard };
+
+if (require.main === module) {
+    program
+      .requiredOption('-t, --target <open_id>', 'Target User Open ID')
+      .option('-x, --text <markdown>', 'Card body text (Markdown)')
+      .option('-f, --text-file <path>', 'Read card body text from file')
+      .option('--title <text>', 'Card header title')
+      .option('--color <color>', 'Header color (blue/red/orange/purple/etc)', 'blue')
+      .option('--button-text <text>', 'Bottom button text')
+      .option('--button-url <url>', 'Bottom button URL')
+      .option('--text-size <size>', 'Text size')
+      .option('--text-align <align>', 'Text alignment')
+      .option('--image-path <path>', 'Path to local image to embed')
+      .option('--image-alt <text>', 'Alt text for image')
+      .option('--dry-run', 'Print JSON body without sending');
+
+    program.parse(process.argv);
+    const options = program.opts();
+
+    (async () => {
+        try {
+            const textContent = await resolveContent(options);
+            
+            if (textContent) {
+                options.text = textContent; // Normalize to options.text for sendCard
+                options.textFile = null;    // Clear file flag to prevent double-read
+            }
+
+            if (!options.text && !options.imagePath) {
+                console.error('Error: No content provided. Use --text, --text-file, --image-path or pipe STDIN.');
+                process.exit(1);
+            }
+
+            sendCard(options);
+        } catch (e) {
+            console.error(e.message);
+            process.exit(1);
+        }
+    })();
+}
