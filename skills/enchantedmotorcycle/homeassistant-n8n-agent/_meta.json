@@ -1,0 +1,11 @@
+{
+  "owner": "enchantedmotorcycle",
+  "slug": "homeassistant-n8n-agent",
+  "displayName": "Homeassistant N8n Agent",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1770083865624,
+    "commit": null
+  },
+  "history": []
+}
