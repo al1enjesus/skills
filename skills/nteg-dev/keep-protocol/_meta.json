@@ -3,11 +3,16 @@
   "slug": "keep-protocol",
   "displayName": "Keep Protocol",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1770118465091,
-    "commit": "https://github.com/clawdbot/skills/commit/11baa6f8c254df7f72f5d6b3952d7a5ebc4ef8ef"
+    "version": "1.0.4",
+    "publishedAt": 1770149871482,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1770118465091,
+      "commit": "https://github.com/clawdbot/skills/commit/11baa6f8c254df7f72f5d6b3952d7a5ebc4ef8ef"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770052110368,
