@@ -1,0 +1,11 @@
+{
+  "owner": "kosasih",
+  "slug": "autonomus-ai",
+  "displayName": "My Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1770612948211,
+    "commit": null
+  },
+  "history": []
+}
