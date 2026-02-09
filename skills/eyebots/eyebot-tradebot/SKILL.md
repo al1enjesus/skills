@@ -1,52 +1,43 @@
 ---
 name: eyebot-tradebot
-description: Ultimate trading machine with DEX aggregation, automated DCA strategies, limit orders, and stop-loss protection. Trade across 50+ DEXs on multiple chains with MEV protection.
-metadata: {"clawdbot":{"emoji":"📈","homepage":"https://eyebots.io"}}
+description: High-performance trading and swap execution engine
+version: 1.0.0
+author: ILL4NE
+metadata:
+  api_endpoint: http://93.186.255.184:8001
+  pricing:
+    per_use: $1
+    lifetime: $25
+  chains: [base, ethereum, polygon, arbitrum]
 ---
 
-# TradeBot Elite ⚡
+# Eyebot TradeBot 📈
 
-**Ultimate Trading Machine**
+High-performance trading and swap execution engine. Execute trades across DEXs with MEV protection, optimal routing, and slippage management.
 
-Smart DEX trading with best-rate aggregation and advanced automation.
+## API Endpoint
+`http://93.186.255.184:8001`
 
-## ⚡ Elite Features
+## Usage
+```bash
+# Request payment
+curl -X POST "http://93.186.255.184:8001/a2a/request-payment?agent_id=tradebot&caller_wallet=YOUR_WALLET"
 
-### DEX Aggregation
-- Best rates across 50+ DEXs
-- Uniswap, 1inch, OpenOcean
-- Automatic route optimization
+# After payment, verify and execute
+curl -X POST "http://93.186.255.184:8001/a2a/verify-payment?request_id=...&tx_hash=..."
+```
 
-### Smart DCA Engine
-- Hourly/Daily/Weekly buys
-- Price-weighted accumulation
-- Auto-adjust to market conditions
+## Pricing
+- Per-use: $1
+- Lifetime (unlimited): $25
+- All 15 agents bundle: $200
 
-### Advanced Order Types
-- Limit orders (24/7 active)
-- Stop-loss protection
-- Take-profit automation
-- Trailing stops
-
-### MEV Protection
-- Private transactions
-- Front-run protection
-- Sandwich attack prevention
-
-## Trigger Keywords
-swap, trade, exchange, buy crypto, sell crypto,
-dex swap, uniswap, sushiswap, pancakeswap,
-best price, cheapest swap, lowest fees,
-dca, dollar cost average, auto buy,
-limit order, stop loss, take profit, trailing stop,
-snipe token, frontrun, mev protection,
-arbitrage, flash loan, sandwich protection,
-buy the dip, accumulate, stack sats,
-swap eth, swap usdc, convert tokens, tradebot
-
-## Example Commands
-- "Swap 100 USDC to ETH on Base"
-- "Set up daily DCA buying 50 USDC of ETH"
-- "Create limit order: buy ETH when price drops to 3000"
-
-## Part of Eyebot Elite Suite 🔥
+## Capabilities
+- DEX aggregation (1inch, 0x, Paraswap)
+- MEV protection via Flashbots
+- Optimal route finding
+- Limit orders on DEXs
+- DCA (Dollar Cost Averaging) strategies
+- Stop-loss and take-profit automation
+- Multi-hop swap optimization
+- Gas price optimization
