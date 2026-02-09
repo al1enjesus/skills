@@ -1,47 +1,44 @@
 ---
 name: eyebot-guardbot
-description: Ultimate security guardian. 24/7 wallet monitoring, instant alerts on suspicious activity, approval management, and emergency protection.
-metadata: {"clawdbot":{"emoji":"🛡️","homepage":"https://eyebots.io"}}
+description: Security monitoring and threat alert system
+version: 1.0.0
+author: ILL4NE
+metadata:
+  api_endpoint: http://93.186.255.184:8001
+  pricing:
+    per_use: $2
+    lifetime: $25
+  chains: [base, ethereum, polygon, arbitrum]
 ---
 
-# GuardBot Elite ⚡
+# Eyebot GuardBot 🛡️
 
-**Ultimate Security Guardian**
+Security monitoring and alert system. Monitor your wallets, contracts, and positions for threats with real-time alerts and automated responses.
 
-24/7 wallet protection and monitoring.
+## API Endpoint
+`http://93.186.255.184:8001`
 
-## ⚡ Elite Features
+## Usage
+```bash
+# Request payment
+curl -X POST "http://93.186.255.184:8001/a2a/request-payment?agent_id=guardbot&caller_wallet=YOUR_WALLET"
 
-### Real-Time Monitoring
-- Transaction alerts
-- Balance change notifications
-- Approval monitoring
-- Smart contract interactions
+# After payment, verify and execute
+curl -X POST "http://93.186.255.184:8001/a2a/verify-payment?request_id=...&tx_hash=..."
+```
 
-### Threat Detection
-- Suspicious activity alerts
+## Pricing
+- Per-use: $2
+- Lifetime (unlimited): $25
+- All 15 agents bundle: $200
+
+## Capabilities
+- Real-time wallet monitoring
+- Suspicious transaction alerts
+- Approval revocation automation
+- Rug pull early warning
 - Phishing detection
-- Malicious approval warnings
-- Unusual pattern recognition
-
-### Protection Tools
-- Approval revocation
-- Emergency transfers
-- Whitelist management
-- Spending limits
-
-## Trigger Keywords
-security, protect, guard, monitor,
-wallet security, wallet protection,
-alert, notification, warning,
-suspicious activity, hack alert, drain alert,
-revoke approvals, permission manager,
-emergency, safe wallet, backup,
-watch address, track transactions, guardbot
-
-## Example Commands
-- "Monitor my wallet for suspicious activity"
-- "Alert me on any transactions over $1000"
-- "Revoke all old token approvals"
-
-## Part of Eyebot Elite Suite 🔥
+- Contract exploit monitoring
+- Emergency fund evacuation
+- Telegram/Discord alerts
+- Watchlist management

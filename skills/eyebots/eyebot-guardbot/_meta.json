@@ -1,11 +1,17 @@
 {
   "owner": "eyebots",
   "slug": "eyebot-guardbot",
-  "displayName": "GuardBot",
+  "displayName": "Eyebot GuardBot",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1770580818509,
-    "commit": "https://github.com/openclaw/skills/commit/2009baa7cb1fc592d0b9fc557c15902cd9e49ea5"
+    "version": "1.1.0",
+    "publishedAt": 1770597897315,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1770580818509,
+      "commit": "https://github.com/openclaw/skills/commit/2009baa7cb1fc592d0b9fc557c15902cd9e49ea5"
+    }
+  ]
 }
