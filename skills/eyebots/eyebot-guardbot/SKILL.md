@@ -1,44 +1,57 @@
 ---
 name: eyebot-guardbot
 description: Security monitoring and threat alert system
-version: 1.0.0
+version: 1.2.0
 author: ILL4NE
 metadata:
-  api_endpoint: http://93.186.255.184:8001
-  pricing:
-    per_use: $2
-    lifetime: $25
   chains: [base, ethereum, polygon, arbitrum]
+  category: security-monitoring
 ---
 
-# Eyebot GuardBot 🛡️
+# GuardBot 🛡️
 
-Security monitoring and alert system. Monitor your wallets, contracts, and positions for threats with real-time alerts and automated responses.
+**Real-Time Security Monitoring**
 
-## API Endpoint
-`http://93.186.255.184:8001`
+Monitor your wallets, contracts, and positions for threats. Get instant alerts on suspicious activity.
+
+## Features
+
+- **Wallet Monitoring**: Track all wallet activity
+- **Contract Watching**: Monitor for upgrades/changes
+- **Approval Tracking**: Alert on token approvals
+- **Anomaly Detection**: AI-powered threat identification
+- **Instant Alerts**: Telegram/Discord notifications
+
+## Alert Types
+
+| Alert | Trigger |
+|-------|---------|
+| Large Transfer | Unusual outflow detected |
+| New Approval | Token approval granted |
+| Contract Change | Watched contract modified |
+| Suspicious TX | Flagged transaction pattern |
+| Drainer Interaction | Known scam contract |
+
+## Protection Features
+
+- Approval revocation tools
+- Emergency transfer capability  
+- Blacklist monitoring
+- Phishing detection
+- Drainer database
 
 ## Usage
-```bash
-# Request payment
-curl -X POST "http://93.186.255.184:8001/a2a/request-payment?agent_id=guardbot&caller_wallet=YOUR_WALLET"
 
-# After payment, verify and execute
-curl -X POST "http://93.186.255.184:8001/a2a/verify-payment?request_id=...&tx_hash=..."
+```bash
+# Watch a wallet
+eyebot guardbot watch <wallet_address>
+
+# Check approvals
+eyebot guardbot approvals <wallet>
+
+# Revoke approval
+eyebot guardbot revoke <token> <spender>
 ```
 
-## Pricing
-- Per-use: $2
-- Lifetime (unlimited): $25
-- All 15 agents bundle: $200
-
-## Capabilities
-- Real-time wallet monitoring
-- Suspicious transaction alerts
-- Approval revocation automation
-- Rug pull early warning
-- Phishing detection
-- Contract exploit monitoring
-- Emergency fund evacuation
-- Telegram/Discord alerts
-- Watchlist management
+## Support
+Telegram: @ILL4NE
