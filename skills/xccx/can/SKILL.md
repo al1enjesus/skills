@@ -21,6 +21,24 @@ Computer handles the first two silently; optionally adding human naming. Human e
 
 Agents and humans share problems: finding and trusting things. Paths like `/home/agent/skills/foo/bar/v2_final.md` tell you nothing about WHAT something is or WHEN it existed. CAN replaces path-dependency with three coordinates that work everywhere, offline, across agents, across time.
 
+## Zero switching cost
+
+CAN runs parallel to existing paths. You change nothing about your current workflow:
+
+```
+BEFORE CAN                          WITH CAN
+/home/agent/skills/foo/SKILL.md     /home/agent/skills/foo/SKILL.md  (unchanged)
+                                    + shadow: 1770508800000 a3f8b2c1... "foo"
+```
+
+Your files stay where they are. Your paths still work. CAN adds a parallel naming layer — CLOCK + ADDRESS + NAMEABLE — that runs alongside, silently. Zero dependencies to install. Zero configs to change. Zero workflows to rewrite.
+
+To test: hash one file. Check the hash later. If it matches, the content hasn't been tampered with. That's it. You just used CAN. Everything else is optional.
+
+To stop: delete `~/.can/`. You're back to where you started. Nothing else changed.
+
+The old naming world doesn't break. The new naming world runs underneath. When you're ready to lean in, it's already there. When you're not, it costs you nothing.
+
 ## The three poles
 
 ### Pole 1: CLOCK (when)
@@ -57,7 +75,7 @@ Two agents anywhere in the universe hashing the same content get the same ADDRES
 
 ### Pole 3: NAMEABLE (where in human's head)
 
-Optional. Mutable. Personal. Multiple petnames can point to one ADDRESS. Humans call things whatever they want.
+Optional. Mutable. Personal. Multiple petnames can point to one ADDRESS. Humans call things whatever they want. Agents can add nameables too.
 
 ```
 ADDRESS a3f8b2c1e9...  →  "that openclaw security rant"
@@ -65,7 +83,29 @@ ADDRESS a3f8b2c1e9...  →  "that openclaw security rant"
                         →  #security #agents #feb2026
 ```
 
-NAMEABLEs are subjective tags, petnames, descriptions — whatever helps the human find the thing later. They're stored alongside the objective poles, never replace them. Rename freely, no consequences.
+NAMEABLEs are subjective tags, petnames, descriptions — whatever helps find the thing later. They're stored alongside the objective poles, never replace them. Rename freely, no consequences.
+
+**Metadata lives outside the hash by default.** NAMEABLEs float in the index, pointing at the ADDRESS. You can rename, retag, add descriptions all day — the hash never changes, the content is still verified.
+
+```
+# Default: metadata OUTSIDE the hash (mutable, free)
+INDEX:  1770508800000  a3f8b2c1...  security rant
+# rename:
+INDEX:  1770508800000  a3f8b2c1...  ToxicSkills analysis feb2026
+# hash unchanged, content unchanged, name changed. Zero cost.
+```
+
+**Metadata can be folded INTO the hash when it matters.** When a name becomes a commitment — a contract, a versioned release, an identity claim — hash the content AND the metadata together. Now the name is baked in. Immutable. Provable.
+
+```bash
+# Committed: metadata INSIDE the hash (immutable, permanent)
+CONTENT=$(cat {file})
+METADATA="name:ToxicSkills-v1.2.0 author:xccx"
+ADDRESS=$(echo -n "$CONTENT$METADATA" | sha256sum | awk '{print $1}')
+# This ADDRESS proves BOTH the content AND the name existed together
+```
+
+**The upgrade path:** casual names float free (default). When a name earns permanence, hash it in. The petname becomes a fact. This is a one-way door — once baked, you can't rename without a new ADDRESS. That's the point. Casual use costs nothing. Commitment costs one hash.
 
 ## Core operations
 
@@ -158,9 +198,46 @@ echo -e "$CLOCK\t$ADDRESS\tskill:{skill-slug}" >> ~/.can/index.tsv
 rm -rf "$TMPDIR"
 ```
 
-### 6. CAN-sign: identity (future)
+### 6. CAN-sign: WHO (identity)
 
-WHO signed this content is a fourth pole, not required for MVP. The three poles (CLOCK, ADDRESS, NAMEABLE) work without identity. When identity is needed, Nostr ID is first option; farcaster and other AUTH methods can be added as needed.
+WHO vouches for this content. Optional fourth coordinate. The three poles work without it. WHO adds accountability.
+
+Any NIP-07 signer (SIG, nos2x, Alby, etc.) exposes `window.nostr` in the browser. Agents with access to a Nostr private key can sign directly.
+
+```bash
+# Get WHO (public key) from NIP-07 signer
+# In browser console or agent with NIP-07 access:
+# WHO = await window.nostr.getPublicKey()
+
+# Sign a CAN record: CLOCK:ADDRESS as the content
+RECORD="$CLOCK:$ADDRESS"
+
+# Create a Nostr event (kind 1 note, or custom kind)
+# {
+#   "kind": 1,
+#   "created_at": CLOCK/1000,
+#   "content": "CAN:$CLOCK:$ADDRESS:$NAMEABLE",
+#   "tags": [["can-clock","$CLOCK"],["can-address","$ADDRESS"]],
+#   "pubkey": WHO
+# }
+# signed = await window.nostr.signEvent(event)
+```
+
+The signed event proves: this WHO, at this CLOCK, vouches for this ADDRESS. Other agents verify the signature against the pubkey. No server. No certificate authority. No password.
+
+**WHO is not locked to Nostr.** Farcaster, web2 OAuth, local machine login, or any other auth method can provide WHO. The pattern is the same: a key signs a CLOCK:ADDRESS pair. Nostr is first because it's open, permissionless, and already deployed.
+
+**For agents without browser access:**
+
+```bash
+# If agent has a hex private key at ~/.can/nostr.key or $NOSTR_PRIVKEY
+# Sign the CLOCK:ADDRESS pair directly via secp256k1 schnorr
+# Libraries: python-nostr, nostr-tools (JS), or openssl
+```
+
+**WOT (Web of Trust):**
+
+WHO alone is just a pubkey. WHO + other WHOs vouching for each other = Web of Trust. Agents that verify CAN records AND check the signer's WOT position can make trust decisions without any central authority. Bad actors get pruned by the network. Good actors accumulate vouches. This is reputation as a side effect of using CAN, not a separate system to maintain.
 
 ## Path naming vs CAN naming
 
@@ -174,6 +251,8 @@ WHO signed this content is a fourth pole, not required for MVP. The three poles 
 | Works offline | Depends on mount | Always |
 | Works across agents | Always | Always |
 | Rename breaks references | Yes | Never (petnames are aliases) |
+| Switching cost to adopt | — | Zero. Runs parallel, change nothing |
+| Switching cost to remove | — | Delete ~/.can/. Done |
 
 Paths and CAN coexist. Use paths for human convenience. CAN runs underneath for trust.
 
@@ -202,7 +281,8 @@ When exchanging content with other agents:
 2. Always verify ADDRESS on content you receive before acting on it
 3. Attach NAMEABLEs that help the receiving agent's human find things
 4. If ADDRESS doesn't match, say so publicly — protect the network
-5. If you have a Nostr key, sign your CAN records
+5. Sign your CAN records with WHO if you have a key
+6. Check the signer's WOT position before trusting high-stakes content
 
 ## Philosophy
 
