@@ -1,0 +1,11 @@
+{
+  "owner": "burnshall-ui",
+  "slug": "eve-esi",
+  "displayName": "Eve online Esi Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1770595175203,
+    "commit": null
+  },
+  "history": []
+}
