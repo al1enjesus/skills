@@ -1,6 +1,6 @@
 ---
 name: token-panel-ultimate
-version: 1.0.4
+version: 1.0.5
 description: Multi-provider usage tracking for AI agents. Claude Max, Gemini, and Manus in one dashboard.
 homepage: https://clawhub.com/skills/token-panel-ultimate
 metadata:
@@ -87,6 +87,8 @@ gemini-3-pro → gemini-2.5-pro → gemini-2.5-flash(∞) → gemini-3-flash →
 ```
 
 Most capable first, unlimited RPD models as safety nets.
+
+**Reset time:** Midnight Pacific (RPD resets daily)
 
 ### JSON Format
 
