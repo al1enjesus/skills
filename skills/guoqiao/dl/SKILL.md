@@ -1,6 +1,6 @@
 ---
 name: dl
-description: Download media smartly into Media Server folders and play on TV directly.
+description: Download Video/Music from YouTube/Bilibili/X/etc.
 metadata: {"openclaw":{"always":true,"emoji":"🦞","homepage":"https://github.com/guoqiao/skills/blob/main/dl/dl/SKILL.md","os":["darwin","linux","win32"],"requires":{"bins":["uv"]}}}
 triggers:
 - "/dl <url>"
@@ -8,35 +8,54 @@ triggers:
 - "Download this music ..."
 ---
 
-# Smart Media Downloader
+# Media Downloader
 
-Download media (via yt-dlp,  more tools comming) with expected formats and folders, and optionally, auto share with Media Server in LAN, watch on TV directly.
+Smartly download media (Video/Music) from URLs (YouTube, Bilibili, X, etc.) to the appropriate local folders.
 
-For Agent: use this skill when the user types `/dl <url>` or asks to download a video/music from YouTube/Bilibili/X/etc url.
+- **Video:** Saves `mp4` to `~/Movies/` or `~/Videos/`.
+- **Music:** Saves `m4a` to `~/Music/`.
+- **Playlists:** Saves items into a subdirectory (e.g., `~/Music/<playlist_name>/`).
 
-## Usage
+Designed to work with a local Media Server (e.g., Universal Media Server, Jellyfin) for instant playback on TV/devices.
 
-Just run this python uv script:
+## Agent Procedure
+
+When the user provides a URL or asks to download media, **you MUST follow this exact sequence:**
+
+1. **Acknowledge:**
+   - Immediately reply to the user: "Downloading with dl skill..."
+
+2. **Execute:**
+   - Run the script:
+     ```bash
+     uv run --script ${baseDir}/dl.py "<url>"
+     ```
+
+3. **Capture Path:**
+   - Read the script output. Look for the line: `Saved to: <filepath>`.
+
+4. **Upload (Telegram Only):**
+   - If the user is on Telegram (check context or session) AND the file is audio (mp3/m4a):
+   - Use the `message` tool to send the file to the user:
+     ```json
+     {
+       "action": "send",
+       "filePath": "<filepath>",
+       "caption": "Here is your music."
+     }
+     ```
+
+## Usage (Manual)
+
+Run the python script directly:
+```bash
+uv run --script ${baseDir}/dl.py <url>
 ```
-uv run --script ${baseDir}/dl.py $url
-```
-Which will auto detect Video/Music and Single/Playlist info from the url, and save to corresponding locations.
+The script auto-detects Video vs Music and Single vs Playlist.
 
-## Examples
+## Setup (User)
 
-Video:
-- `https://youtube.com/watch?v=<id>`  -> save to `~/Movies/<name>.mp4`
-- `https://youtube.com/playlist?list=PL...`  -> save to `~/Movies/<playlist>/*.mp4`
-
-Music:
-- `https://music.youtube.com/watch?v=<id>`  -> save to `~/Music/<name>.m4a`
-- `https://music.youtube.com/playlist?list=PL...`  -> save to `~/Music/<playlist>/*.m4a`
-
-
-## Extra Setup For Human
-
-To make this skill really useful and different from other media downloaders:
-- Install a DLNA/UPnP Media Server on this machine, e.g.: Universal Media Server(preferred on mac), miniDLNA, Jellyfin, etc.
-- Add the ~/Music and ~/Movies (or ~/Videos) folders to the media server to share over LAN.
-- Downloaded media with this skill, it will save media into these folders automatically.
-- Play the media on other devices(e.g.: TV) directly, which will be shared by the media server.
+To enable TV playback:
+1. Install a DLNA/UPnP Media Server (Universal Media Server, miniDLNA, Jellyfin).
+2. Share `~/Music` and `~/Movies` (or `~/Videos`) folders.
+3. Downloaded media will appear automatically on your TV.
