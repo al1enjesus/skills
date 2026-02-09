@@ -328,10 +328,24 @@ tail -20 ~/.openclaw/logs/gateway.err.log
 
 ### 问题：API 返回 429 Too Many Requests
 
-- **原因**：触发速率限制
-- **MiniMax 限制**：约 100 prompts / 5 小时（非无限！）
-- **修复**：等待限制窗口过去，或降低请求频率
-- **预防**：在 fallback 链中配置其他 provider 作为备用
+- **原因**：Coding Plan 额度耗尽
+- **MiniMax Coding Plan 限制**：1500 次/5小时滑动窗口（每次调用倒算前 5 小时消耗）
+- **修复**：等待旧调用滑出 5 小时窗口，或让 fallback 链自动降级
+- **预防**：在 fallback 链中配置免费模型（如 `siliconflow/Qwen/Qwen3-8B`）作为兜底
+
+### 问题：额度查询 API 数据不准确
+
+- **现象**：`GET /v1/api/openplatform/coding_plan/remains` 返回的 `current_interval_usage_count` 与平台控制台显示不一致
+- **原因**：API 为惰性更新，窗口切换后如无新调用则不刷新计数器
+- **应对**：不要完全信任 API 返回数字。判断额度是否可用，最可靠的方法是发一个真实测试请求
+- **验证命令**：
+```bash
+curl -s https://api.minimaxi.com/v1/chat/completions \
+  -H "Authorization: Bearer <API_KEY>" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"MiniMax-M2.1","messages":[{"role":"user","content":"test"}],"max_tokens":3}'
+```
+返回 `choices` = 可用；返回 429 = 额度确实耗尽
 
 ### 问题：Gateway 启动后立刻崩溃
 
@@ -358,3 +372,4 @@ tail -20 ~/.openclaw/logs/gateway.err.log
 | 日期 | 版本 | 变更内容 | 变更人 |
 |------|------|----------|--------|
 | 2026-02-08 | v1.0 | 创建 MiniMax provider 配置指南 | ConfigBot (via OpenClaw with Opus 4.6) |
+| 2026-02-09 | v1.1 | 更新额度信息 (1500/5h 滑动窗口)；新增额度 API 不可信警告 | ConfigBot (via OpenClaw with Claude Opus 4.6) |
