@@ -3,11 +3,16 @@
   "slug": "ai-picture-book",
   "displayName": "Ai Picture Book",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1770643616077,
-    "commit": "https://github.com/openclaw/skills/commit/aaef21f1b3c77ca2d94561c43c6b4ea2826e4cc7"
+    "version": "1.0.7",
+    "publishedAt": 1770709828730,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1770643616077,
+      "commit": "https://github.com/openclaw/skills/commit/aaef21f1b3c77ca2d94561c43c6b4ea2826e4cc7"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1770608933452,
