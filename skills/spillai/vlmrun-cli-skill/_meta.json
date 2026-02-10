@@ -1,0 +1,11 @@
+{
+  "owner": "spillai",
+  "slug": "vlmrun-cli-skill",
+  "displayName": "Vlmrun Cli Skill",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1770739441875,
+    "commit": null
+  },
+  "history": []
+}
