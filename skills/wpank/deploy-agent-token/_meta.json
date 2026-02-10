@@ -1,0 +1,11 @@
+{
+  "owner": "wpank",
+  "slug": "deploy-agent-token",
+  "displayName": "Uniswap Deploy Agent Token",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1770745412765,
+    "commit": null
+  },
+  "history": []
+}
