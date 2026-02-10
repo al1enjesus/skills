@@ -234,7 +234,7 @@ node scripts/deploy.js ./dist --pid YOUR_PID
 - `archiver` — Zip archive creation
 - `form-data` — Multipart form encoding
 - `node-fetch` — HTTP requests
-- `adm-zip` — Zip extraction (fallback)
+- `adm-zip` — Zip extraction
 
 Install with: `cd scripts && npm install`
 

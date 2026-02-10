@@ -7,10 +7,11 @@
 const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
-const { execSync } = require('child_process');
+const AdmZip = require('adm-zip');
 
 const API_BASE = 'https://api.static.app/v1/sites/download';
-const WORKSPACE_DIR = path.join(process.cwd(), 'staticapp');
+// Resolve workspace root: script is in skills/static-app/scripts/, go up 3 levels
+const WORKSPACE_DIR = path.join(__dirname, '..', '..', '..', 'staticapp');
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -118,22 +119,14 @@ function extractZip(zipPath, extractPath) {
     fs.mkdirSync(extractPath, { recursive: true });
   }
   
-  // Try using system unzip first, fallback to Node extraction
+  // Extract using adm-zip (pure Node.js, no shell commands)
   try {
-    execSync(`unzip -q -o "${zipPath}" -d "${extractPath}"`, { stdio: 'pipe' });
+    const zip = new AdmZip(zipPath);
+    zip.extractAllTo(extractPath, true);
     console.log(`✅ Extracted successfully`);
   } catch (err) {
-    // Fallback: try using node-stream-zip or adm-zip if available
-    try {
-      const AdmZip = require('adm-zip');
-      const zip = new AdmZip(zipPath);
-      zip.extractAllTo(extractPath, true);
-      console.log(`✅ Extracted successfully (using adm-zip)`);
-    } catch (requireErr) {
-      console.error(`❌ Extraction failed. Please install unzip command or adm-zip package.`);
-      console.error(`   Try: npm install adm-zip`);
-      throw new Error('Extraction failed');
-    }
+    console.error(`❌ Extraction failed: ${err.message}`);
+    throw new Error('Extraction failed');
   }
 }
 
