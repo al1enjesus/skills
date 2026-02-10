@@ -1,0 +1,11 @@
+{
+  "owner": "transcendenceia",
+  "slug": "opnsense-admin",
+  "displayName": "Opnsense Admin Skill",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1770712483801,
+    "commit": null
+  },
+  "history": []
+}
