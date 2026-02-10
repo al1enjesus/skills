@@ -1,0 +1,11 @@
+{
+  "owner": "wpank",
+  "slug": "analyze-pool",
+  "displayName": "Uniswap Analyze Pool",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1770744745518,
+    "commit": null
+  },
+  "history": []
+}
