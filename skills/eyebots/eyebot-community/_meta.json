@@ -1,0 +1,11 @@
+{
+  "owner": "eyebots",
+  "slug": "eyebot-community",
+  "displayName": "Eyebot Community",
+  "latest": {
+    "version": "1.8.0",
+    "publishedAt": 1770639031910,
+    "commit": null
+  },
+  "history": []
+}
