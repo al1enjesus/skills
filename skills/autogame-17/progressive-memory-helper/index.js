@@ -42,8 +42,10 @@ program
   .requiredOption('-t, --type <type>', 'Type (rule, gotcha, fix, change, decision, discovery)')
   .requiredOption('-s, --summary <summary>', 'Short summary for index (max 10 words)')
   .requiredOption('-d, --details <details>', 'Full details/context')
+  .option('--content <details>', 'Full details/context (alias for --details)')
   .action((options) => {
     try {
+      if (options.content && !options.details) options.details = options.content;
       addEntry(options);
     } catch (error) {
       console.error('Error adding entry:', error.message);
