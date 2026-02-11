@@ -1,0 +1,11 @@
+{
+  "owner": "cinience",
+  "slug": "alicloud-backup-bdrc",
+  "displayName": "Alicloud Backup Bdrc",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1770768487228,
+    "commit": null
+  },
+  "history": []
+}
