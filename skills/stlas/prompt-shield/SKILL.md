@@ -14,9 +14,9 @@ tags: [security, firewall, prompt-injection, agent-safety]
 
 Protects AI agents against manipulative inputs through multi-layered pattern recognition and heuristic scoring.
 
-**Version:** 3.0.2
+**Version:** 3.0.6
 **License:** MIT
-**Dependencies:** Zero (pure Python stdlib)
+**Dependencies:** PyYAML (`pip install pyyaml`)
 **GitHub:** https://github.com/stlas/PromptShield
 
 ## What It Does
@@ -131,7 +131,6 @@ Add to `~/.claude/settings.json`:
 | whitelist.yaml | Hash-chain whitelist v2 |
 | prompt-shield-hook.sh | Claude Code hook |
 | SCORING.md | Detailed scoring documentation |
-| test_shield.py | Test suite (29 core + 135 GUARDIAN tests) |
 
 ## Built By
 
