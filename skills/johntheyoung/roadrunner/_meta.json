@@ -3,11 +3,16 @@
   "slug": "roadrunner",
   "displayName": "Roadrunner",
   "latest": {
-    "version": "0.9.0",
-    "publishedAt": 1768785093396,
-    "commit": "https://github.com/clawdbot/skills/commit/e8104ab6d2a44994c02c72740673da2e996858be"
+    "version": "0.12.0",
+    "publishedAt": 1770829697956,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.9.0",
+      "publishedAt": 1768785093396,
+      "commit": "https://github.com/clawdbot/skills/commit/e8104ab6d2a44994c02c72740673da2e996858be"
+    },
     {
       "version": "0.8.0",
       "publishedAt": 1768754221334,
