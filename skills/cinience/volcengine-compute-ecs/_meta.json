@@ -1,0 +1,11 @@
+{
+  "owner": "cinience",
+  "slug": "volcengine-compute-ecs",
+  "displayName": "Volcengine Compute Ecs",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1770769462727,
+    "commit": null
+  },
+  "history": []
+}
