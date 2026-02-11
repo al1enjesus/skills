@@ -18,12 +18,16 @@ const client = new Lark.Client({
 program
     .requiredOption('--summary <text>', 'Task Title')
     .option('--desc <text>', 'Task Description')
+    .option('--content <text>', 'Task Description (alias)')
     .option('--due <time>', 'Due time (YYYY-MM-DD HH:mm)')
     .option('--assignees <ids>', 'Comma-separated OpenIDs of executors')
     .option('--origin <text>', 'Origin info (optional)')
     .parse(process.argv);
 
 const options = program.opts();
+
+// Alias mapping
+if (options.content && !options.desc) options.desc = options.content;
 
 async function createTask() {
     try {
