@@ -1,10 +1,11 @@
 ---
 name: ai-bill-intelligence
 description: Real-time AI API usage tracking and cost monitoring for OpenClaw. Track spending across OpenAI, Claude, Gemini, Kimi, DeepSeek, and Grok with live dashboard. Use when users need to monitor AI API costs, track token usage, or manage budgets for multiple AI providers.
-version: 2.0.0
 ---
 
-# AI Bill Intelligence
+# AI Bill Intelligence v2.1.0
+
+Real-time AI API usage tracking and cost monitoring dashboard for OpenClaw.
 
 Real-time AI API usage tracking and cost monitoring dashboard for OpenClaw.
 
