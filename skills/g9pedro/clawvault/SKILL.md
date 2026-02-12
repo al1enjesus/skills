@@ -16,20 +16,26 @@ An elephant never forgets. Structured memory for OpenClaw agents.
 
 ## Security & Transparency
 
-**What this skill does:**
-- Reads/writes markdown files in your vault directory (`CLAWVAULT_PATH` or auto-discovered)
-- `repair-session` reads and modifies OpenClaw session transcripts (`~/.openclaw/agents/`) — creates backups before writing
-- Installs an OpenClaw **hook** (`hooks/clawvault/handler.js`) that runs on `gateway:startup` and `command:new` events to auto-checkpoint and detect context death. The hook is **opt-in** — enable via `openclaw hooks enable clawvault`
-- `observe --compress` makes LLM API calls (Gemini Flash by default) to compress session transcripts into observations
+**What this skill does — full disclosure:**
+
+| Capability | Scope | Opt-in? |
+|---|---|---|
+| Read/write markdown files | Your vault directory only (`CLAWVAULT_PATH` or auto-discovered) | Always active |
+| Search vault (keyword + semantic) | Read-only queries via `qmd` CLI | Always active |
+| Checkpoint/recover/wake/sleep | Writes state files inside `.clawvault/` in your vault | Always active |
+| `repair-session` — fix broken session transcripts | Reads + modifies JSONL files in `~/.openclaw/agents/`. **Always creates `.bak` backup before writing.** Use `--dry-run` to preview changes without modifying anything. | Explicit command only |
+| OpenClaw hook (`handler.js`) | Runs on `gateway:startup` and `command:new` events. Calls `clawvault checkpoint` and `clawvault recover`. Does NOT make network calls. | **Opt-in** — must run `openclaw hooks enable clawvault` |
+| `observe --compress` — LLM compression | Sends session transcript text to Gemini Flash API to extract observations. **This is the ONLY feature that makes external API calls.** Requires `GEMINI_API_KEY` to be set. Without the key, this feature is completely inert. | Explicit command only + requires API key |
+
+**Network calls:** Zero by default. The only feature that contacts an external API is `observe --compress`, and only when you explicitly run it with a valid `GEMINI_API_KEY`. All other commands are pure local filesystem operations.
 
 **Environment variables used:**
 - `CLAWVAULT_PATH` — vault location (optional, auto-discovered if not set)
-- `OPENCLAW_HOME` / `OPENCLAW_STATE_DIR` — used by `repair-session` to find session transcripts
-- `GEMINI_API_KEY` — used by `observe` for LLM compression (optional, only if using observe features)
+- `OPENCLAW_HOME` / `OPENCLAW_STATE_DIR` — used by `repair-session` to locate session transcripts
+- `GEMINI_API_KEY` — used **only** by `observe --compress` for LLM compression. If not set, observe runs without compression (rule-based fallback). No other command reads this key.
+- `CLAWVAULT_NO_LLM=1` — force-disable all LLM calls even if API key is present
 
-**No cloud sync — all data stays local. No network calls except LLM API for observe compression.**
-
-**This is a full CLI tool, not instruction-only.** It writes files, registers hooks, and runs code.
+**No cloud sync. No telemetry. No analytics. No phone-home. All data stays on your machine.**
 
 ## Install
 
