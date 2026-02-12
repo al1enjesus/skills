@@ -115,6 +115,9 @@ def call_gemini_tts(
                 b64 = data["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
             except Exception as e:
                 raise RuntimeError(f"Unexpected Gemini response: {data}") from e
+            # SECURITY NOTE: base64 decode is used ONLY for Gemini API audio response.
+            # The API returns PCM audio data as base64-encoded string in JSON.
+            # This is a standard practice for binary data in JSON responses.
             return base64.b64decode(b64)
 
         except error.HTTPError as e:

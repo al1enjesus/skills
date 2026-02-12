@@ -1,10 +1,20 @@
 ---
 name: ai-podcast-pipeline
-version: 0.1.4
+version: 0.1.5
 description: Create Korean AI podcast packages from QuickView trend notes. Use for dual-host script writing (Callie × Nick), Gemini multi-speaker TTS audio generation, subtitle timing/render fixes, thumbnail+MP4 packaging, and YouTube title/description output. Supports both full (15~20 min) and compressed (5~7 min) editions.
 ---
 
 # AI Podcast Pipeline
+
+## ⚠️ Security Notice
+
+This skill may trigger antivirus false positives due to legitimate use of:
+- **base64 decoding**: Used ONLY to decode audio data from Gemini TTS API responses (standard practice for binary data in JSON)
+- **subprocess calls**: Used ONLY to invoke ffmpeg for audio/video processing
+- **Environment variables**: Reads API keys from user-configured environment (`GEMINI_API_KEY`)
+- **Network requests**: Calls Google Gemini API for text-to-speech generation
+
+All code is open source and auditable in this repository. No malicious behavior.
 
 Build end-to-end podcast assets from `Trend/QuickView-*` content.
 
