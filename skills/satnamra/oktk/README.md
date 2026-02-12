@@ -1,8 +1,10 @@
-# 🔪 oktk - AI Token Killer
+# 🔪 oktk - LLM Token Optimizer
 
-> **Reduce your LLM token costs by 60-90%** by compressing command outputs before they reach the AI.
->
-> *By Armantas Pranaitis*
+### Reduce AI API Costs by 60-90% | GPT-4 & Claude Token Saver
+
+> **By Buba Draugelis** 🇱🇹
+
+Compresses CLI command outputs before sending to your LLM, dramatically cutting token usage and API costs.
 
 [![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://clawhub.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)

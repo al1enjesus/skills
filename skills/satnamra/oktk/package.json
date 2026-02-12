@@ -1,7 +1,7 @@
 {
   "name": "oktk",
   "version": "1.3.0",
-  "description": "AI Token Killer - Compresses CLI outputs before sending to LLM, reducing token usage by 60-90%. By Armantas Pranaitis.",
+  "description": "LLM Token Optimizer - Reduce AI API costs by 60-90%. Compresses CLI outputs (git, docker, kubectl) for GPT-4, Claude, OpenAI. By Buba Draugelis.",
   "main": "scripts/oktk.js",
   "bin": {
     "oktk": "./scripts/oktk.js"
@@ -13,20 +13,21 @@
     "cache:clear": "node scripts/oktk.js cache --clear"
   },
   "keywords": [
-    "token",
-    "optimization",
-    "llm",
-    "ai",
-    "cli",
-    "filter",
-    "compression",
-    "openai",
-    "claude",
-    "gpt",
-    "cost-savings",
-    "openclaw"
+    "llm-token-optimizer",
+    "token-optimization",
+    "reduce-api-costs",
+    "gpt-4-token-saver",
+    "claude-token-saver",
+    "openai-cost-reduction",
+    "ai-token-compressor",
+    "cli-output-filter",
+    "prompt-compression",
+    "anthropic",
+    "chatgpt",
+    "openclaw",
+    "buba-draugelis"
   ],
-  "author": "Armantas Pranaitis <armantas@gmail.com>",
+  "author": "Buba Draugelis <buba@openclaw.ai>",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

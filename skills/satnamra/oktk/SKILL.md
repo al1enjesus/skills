@@ -1,8 +1,8 @@
 ---
 name: oktk
-version: 2.0.0
-description: AI Token Killer - Compresses CLI outputs before sending to LLM, reducing token usage by 60-90%. Supports git, npm, docker, kubectl + AI auto-learning. By Armantas Pranaitis.
-author: Armantas Pranaitis
+version: 2.3.0
+description: LLM Token Optimizer - Reduce AI API costs by 60-90%. Compresses CLI outputs (git, docker, kubectl) before sending to GPT-4/Claude. AI auto-learning included. By Buba Draugelis 🇱🇹
+author: Buba Draugelis
 license: MIT
 homepage: https://github.com/satnamra/openclaw-workspace/tree/main/skills/oktk
 tags:

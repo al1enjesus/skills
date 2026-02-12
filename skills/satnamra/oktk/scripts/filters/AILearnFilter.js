@@ -11,7 +11,6 @@
 const BaseFilter = require('./BaseFilter');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 class AILearnFilter extends BaseFilter {
   constructor(context = {}) {
@@ -108,55 +107,12 @@ class AILearnFilter extends BaseFilter {
   }
 
   /**
-   * Learn a new pattern using AI
+   * Learn a new pattern using heuristics
+   * (AI-based learning removed for security - uses smart heuristics instead)
    */
   async learnPattern(command, output) {
-    const prompt = `You are a CLI output compressor. Analyze this command output and create a compression template.
-
-Command: ${command}
-
-Output (first 2000 chars):
-${output.substring(0, 2000)}
-
-Create a JSON response with:
-1. "summary_template": A template string showing what to extract (use {placeholders})
-2. "extract_rules": Array of regex patterns to extract key info
-3. "importance": What parts are most important (error messages always included)
-
-Example response:
-{
-  "summary_template": "📊 {count} items\\n{status_icon} Status: {status}",
-  "extract_rules": [
-    {"name": "count", "pattern": "(\\\\d+) items?", "default": "0"},
-    {"name": "status", "pattern": "Status:\\\\s*(\\\\w+)", "default": "unknown"}
-  ],
-  "importance": ["errors", "counts", "status"]
-}
-
-Respond with ONLY the JSON, no explanation.`;
-
-    try {
-      // Use oracle CLI or direct API call
-      const result = execSync(
-        `echo ${JSON.stringify(prompt)} | oracle --engine ${this.model} --no-stream 2>/dev/null`,
-        { 
-          encoding: 'utf8',
-          timeout: 30000,
-          maxBuffer: 1024 * 1024
-        }
-      );
-
-      // Parse the JSON response
-      const jsonMatch = result.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
-    } catch (e) {
-      // Fallback: try simpler extraction
-      return this.createSimplePattern(command, output);
-    }
-
-    return null;
+    // Use heuristic-based pattern creation (no external calls)
+    return this.createSimplePattern(command, output);
   }
 
   /**

@@ -2,7 +2,7 @@
  * oktk test suite
  */
 
-const { execSync } = require('child_process');
+// Safe test utilities (no shell execution)
 
 class OktkTests {
   constructor() {
@@ -436,11 +436,11 @@ async function testCache() {
     tests.assertEqual(result2, null);
   });
 
-  // Cleanup
+  // Cleanup using fs (safer than shell rm -rf)
   try {
-    execSync(`rm -rf ${tempDir}`);
+    fs.rmSync(tempDir, { recursive: true, force: true });
   } catch {
-    // Ignore
+    // Ignore cleanup errors
   }
 
   return tests.summary();
