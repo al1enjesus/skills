@@ -42,10 +42,21 @@ OpenClaw向けのNotionベースLTM(長期記憶) + Emotion/State + Journal運�
 
 - OpenClaw Gateway
 - Notion Integration + token
-- (推奨) ClawHub Notion skill
-  - <https://clawhub.ai/steipete/notion>
+- Notion操作用スキル（ClawHub）: `notion-api-automation`
+
+インストール例:
+
+```bash
+clawhub install notion-api-automation
+```
 
 ## セットアップ
+
+### 0) Notion操作スキルをインストール
+
+```bash
+clawhub install notion-api-automation
+```
 
 ### 1) Notion Integration
 1. <https://www.notion.so/my-integrations> でIntegrationを作る

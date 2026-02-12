@@ -13,7 +13,7 @@ _ROOT = Path(__file__).resolve().parents[3]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from skills.notion.scripts.notion_client import http_json
+from notion_http import http_json
 
 
 def now_iso():

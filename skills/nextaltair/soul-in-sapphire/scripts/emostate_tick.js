@@ -17,7 +17,7 @@ import path from 'path';
 import {
   createPage,
   queryDataSource,
-} from '../../notion/scripts/notion_client.js';
+} from './notion_client.js';
 
 function die(msg) {
   process.stderr.write(String(msg) + '\n');

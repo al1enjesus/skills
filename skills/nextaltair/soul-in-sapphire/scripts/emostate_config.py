@@ -14,7 +14,7 @@ def load_config() -> dict:
     if not p.exists():
         raise SystemExit(
             f"Missing config: {p}\n"
-            "Run setup: python3 skills/soul-in-sapphire/scripts/setup_ltm.py"
+            "Run setup: node skills/soul-in-sapphire/scripts/setup_ltm.js --parent <Notion parent page url> --base <name> --yes"
         )
     return json.loads(p.read_text(encoding="utf-8"))
 
@@ -31,4 +31,4 @@ def require_paths(cfg: dict, keys: list[str]):
         if not cfg.get(k):
             missing.append(k)
     if missing:
-        raise SystemExit(f"Config missing keys: {missing}. Run setup_ltm.py again.")
+        raise SystemExit(f"Config missing keys: {missing}. Run setup_ltm.js again.")

@@ -12,7 +12,8 @@ This is meant to be **project-agnostic** (unlike `lorairo-mem`).
 ## Requirements
 
 - Notion token in env: `NOTION_API_KEY` (or `NOTION_TOKEN`).
-- Notion API version: `2025-09-03` (data_sources). Defaulted by `skills/notion/scripts/notion_client.py`.
+- Notion API version: `2025-09-03` (data_sources).
+- Recommended Notion skill dependency (ClawHub): `notion-api-automation` (install with `clawhub install notion-api-automation`).
 - A Notion database for LTM entries.
 
 ## Notion LTM database schema (expected)
@@ -44,7 +45,7 @@ It contains:
 1) 初期設定（DB名を聞いて、存在しなければ作成→IDsを保存）:
 
 ```bash
-python3 skills/soul-in-sapphire/scripts/setup_ltm.py
+node skills/soul-in-sapphire/scripts/setup_ltm.js --parent "<Notion parent page url>" --base "Valentina" --yes
 ```
 
 2) Write memory:
@@ -68,7 +69,8 @@ python3 skills/soul-in-sapphire/scripts/ltm_search.py --query "data_sources" --l
 
 ## Notes
 
-- These scripts use the shared helper: `skills/notion/scripts/notion_client.py`.
+- This skill no longer depends on `skills/notionkit/*`.
+- Notion API operations are handled by local helpers in this skill (`scripts/notion_client.js`, `scripts/notion_http.py`) and the recommended external dependency is `skills/notion-api-automation` (`scripts/notionctl.mjs`) for operational tooling.
 - Keep writes **high-signal**: prefer fewer, clearer entries over dumping chat logs.
 
 
@@ -96,7 +98,7 @@ These should live under your OpenClaw page.
 Create one event, attach multiple emotions, then write a new state snapshot:
 
 ```bash
-cat <<'JSON' | python3 skills/soul-in-sapphire/scripts/emostate_tick.py
+cat <<'JSON' | node skills/soul-in-sapphire/scripts/emostate_tick.js
 {
   "event": {
     "title": "...",

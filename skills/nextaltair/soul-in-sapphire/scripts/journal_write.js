@@ -24,7 +24,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-import { createPage } from '../../notion/scripts/notion_client.js';
+import { createPage } from './notion_client.js';
 
 function die(msg) {
   process.stderr.write(String(msg) + '\n');
@@ -90,8 +90,25 @@ async function main() {
     source: selectProp(obj.source || 'manual'),
   };
 
-  const page = await createPage(journalDb, props);
-  console.log(JSON.stringify({ ok: true, id: page.id, url: page.url }, null, 2));
+  try {
+    const page = await createPage(journalDb, props);
+    console.log(JSON.stringify({ ok: true, id: page.id, url: page.url }, null, 2));
+    return;
+  } catch (err) {
+    // Some journal DBs may not have optional properties (e.g., older schemas).
+    // If Notion rejects unknown properties, retry once with those props removed.
+    const msg = String(err?.message || err);
+    const missingHighlights = msg.includes('highlights is not a property that exists');
+    const missingLinks = msg.includes('links is not a property that exists');
+    if (missingHighlights || missingLinks) {
+      if (missingHighlights) delete props.highlights;
+      if (missingLinks) delete props.links;
+      const page = await createPage(journalDb, props);
+      console.log(JSON.stringify({ ok: true, id: page.id, url: page.url, note: 'retried_without_optional_props' }, null, 2));
+      return;
+    }
+    throw err;
+  }
 }
 
 main().catch(err => die(err?.stack || err?.message || String(err)));

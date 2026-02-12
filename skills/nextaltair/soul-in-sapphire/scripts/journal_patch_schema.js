@@ -2,7 +2,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { patchDataSource } from '../../notion/scripts/notion_client.js';
+import { patchDataSource } from './notion_client.js';
 
 function die(msg){ process.stderr.write(String(msg)+'\n'); process.exit(1); }
 
