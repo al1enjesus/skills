@@ -2,6 +2,8 @@
 """
 MoltFlow Group Monitor - WhatsApp Group Monitoring & Lead Detection
 """
+# Required Scopes: groups:manage
+# Chat History: Not required
 import os
 import requests
 

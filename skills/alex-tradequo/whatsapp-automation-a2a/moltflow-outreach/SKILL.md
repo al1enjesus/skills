@@ -32,6 +32,14 @@ Broadcast to custom contact lists with ban-safe throttling, schedule recurring m
 2. At least one connected WhatsApp session (status: `working`)
 3. Base URL: `https://apiv2.waiflow.app/api/v2`
 
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `custom-groups` | `read/manage` |
+| `bulk-send` | `read/manage` |
+| `scheduled` | `read/manage` |
+
 ## Authentication
 
 Every request must include one of:

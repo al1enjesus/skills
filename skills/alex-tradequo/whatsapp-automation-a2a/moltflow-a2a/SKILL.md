@@ -2,7 +2,7 @@
 name: moltflow-a2a
 description: "Agent-to-Agent protocol for MoltFlow: agent discovery, encrypted messaging, group management, content policy. Use when: a2a, agent card, agent message, encrypted, content policy, agent discovery."
 source: "MoltFlow Team"
-version: "2.0.0"
+version: "2.1.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -33,6 +33,12 @@ Enables AI agents to communicate securely through MoltFlow using the A2A protoco
 2. Base URL: `https://apiv2.waiflow.app/api/v2`
 3. Agent discovery endpoint: `https://apiv2.waiflow.app/.well-known/agent.json`
 4. Encryption keys are managed server-side -- external agents only need the API key
+
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `a2a` | `read/manage` |
 
 ## Authentication
 
@@ -100,6 +106,8 @@ MoltFlow uses X25519 ECDH key exchange with AES-256-GCM encryption for A2A messa
 | GET | `/agent/capabilities` | Get encryption capabilities |
 | POST | `/agent/initialize` | Initialize encryption for tenant |
 | GET | `/agent/bootstrap` | Skill bootstrap info |
+| POST | `/agent/export-keypair` | Export encryption keypair for backup |
+| POST | `/agent/import-keypair` | Import encryption keypair from backup |
 
 ### Get Public Key
 
@@ -114,6 +122,22 @@ MoltFlow uses X25519 ECDH key exchange with AES-256-GCM encryption for A2A messa
 ### How Encryption Works
 
 Each tenant has an X25519 keypair generated on initialization. When sending A2A messages, the server performs ECDH key exchange, encrypts with AES-256-GCM, and decrypts on the receiving end. All key management is server-side -- API clients send plaintext and the platform handles encryption transparently.
+
+### Export Keypair
+
+```bash
+curl -X POST https://apiv2.waiflow.app/agent/export-keypair \
+  -H "X-API-Key: $MOLTFLOW_API_KEY"
+```
+
+### Import Keypair
+
+```bash
+curl -X POST https://apiv2.waiflow.app/agent/import-keypair \
+  -H "X-API-Key: $MOLTFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"public_key": "...", "private_key": "..."}'
+```
 
 ---
 

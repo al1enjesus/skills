@@ -2,6 +2,8 @@
 """
 MoltFlow Outreach - Bulk Send, Scheduled Messages, Custom Groups
 """
+# Required Scopes: custom-groups:manage, bulk-send:manage, scheduled:manage
+# Chat History: Not required (send-only)
 import os
 import json
 import requests

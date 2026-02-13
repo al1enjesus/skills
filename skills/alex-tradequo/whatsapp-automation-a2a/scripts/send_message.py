@@ -3,6 +3,8 @@
 Send WhatsApp Message Helper
 Simple wrapper for the most common task — sending a text message via the REST API.
 """
+# Required Scopes: messages:send
+# Chat History: Not required (send-only)
 import argparse
 import os
 import sys

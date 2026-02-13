@@ -2,7 +2,7 @@
 name: moltflow-ai
 description: "AI-powered WhatsApp features: auto-replies, voice transcription, RAG knowledge base, and style profiles. Use when: ai reply, transcribe voice, knowledge base, upload document, train style, learn mode."
 source: "MoltFlow Team"
-version: "2.0.0"
+version: "2.1.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -33,6 +33,16 @@ AI-powered capabilities for WhatsApp automation: voice transcription, RAG knowle
 2. **Pro plan or higher** ($29.90/mo) -- AI features are not available on the Starter plan
 3. Base URL: `https://apiv2.waiflow.app/api/v2`
 4. All AI endpoints are under the `/ai` prefix
+
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `ai` | `read/manage` |
+
+> **Chat History Access**: Reading chat history requires explicit tenant opt-in.
+> Enable at **Settings > Account > Data Access** before using chat-related features.
+> Sending messages does NOT require this consent — only reading history.
 
 ## Authentication
 

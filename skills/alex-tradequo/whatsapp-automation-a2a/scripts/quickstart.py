@@ -2,6 +2,8 @@
 """
 MoltFlow Quickstart - Send your first WhatsApp message
 """
+# Required Scopes: sessions:read, messages:send, messages:read, usage:read
+# Chat History: Required — lists chats and reads messages
 import os
 import requests
 

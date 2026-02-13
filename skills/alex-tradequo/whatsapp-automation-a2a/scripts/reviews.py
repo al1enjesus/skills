@@ -2,6 +2,8 @@
 """
 MoltFlow Reviews - Review Collector Management
 """
+# Required Scopes: reviews:manage
+# Chat History: Not required
 import os
 import requests
 

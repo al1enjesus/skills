@@ -2,6 +2,8 @@
 """
 MoltFlow Admin - API Key Management and Usage
 """
+# Required Scopes: settings:manage, usage:read, billing:read
+# Chat History: Not required
 import os
 import requests
 

@@ -2,7 +2,7 @@
 name: moltflow-admin
 description: "Manage MoltFlow platform authentication, users, billing, API keys, and tenant settings via the admin API."
 source: "MoltFlow Team"
-version: "2.0.0"
+version: "2.1.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -41,6 +41,15 @@ Trigger phrases: "login to MoltFlow", "create API key", "check subscription", "b
 ```
 https://apiv2.waiflow.app/api/v2
 ```
+
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `settings` | `manage` |
+| `usage` | `read` |
+| `billing` | `manage` |
+| `account` | `manage` |
 
 ## Authentication
 
@@ -99,7 +108,7 @@ Self-service user profile endpoints (authenticated user):
 |--------|----------|-------------|
 | GET | `/users/me` | Get own profile |
 | PATCH | `/users/me` | Update own profile |
-| DELETE | `/users/me` | Delete own account (soft) |
+| DELETE | `/users/me` | Delete own account (cascading -- 32+ tables) |
 
 Admin user management (superadmin only — via `/admin` prefix):
 
@@ -129,19 +138,26 @@ Admin user management (superadmin only — via `/admin` prefix):
 ```json
 // POST /api-keys
 {
-  "name": "Production Integration"
+  "name": "outreach-bot",
+  "scopes": ["messages:send", "custom-groups:manage", "bulk-send:manage"],
+  "expires_in_days": 90
 }
 
 // Response (raw key shown ONCE — save it immediately)
 {
   "id": "uuid",
-  "name": "Production Integration",
+  "name": "outreach-bot",
   "key_prefix": "mf_abc1",
   "raw_key": "mf_abc1234567890abcdef...",
+  "scopes": ["messages:send", "custom-groups:manage", "bulk-send:manage"],
+  "expires_at": "2026-04-15T10:00:00Z",
   "created_at": "2026-01-15T10:00:00Z",
   "is_active": true
 }
 ```
+
+- `scopes`: Array of permission scopes (default: `["*"]` for full access). See main SKILL.md for the complete scope reference.
+- `expires_in_days`: Optional expiry in days (default: no expiry).
 
 **Important:** The `raw_key` is only returned at creation time. It is stored as a SHA-256 hash — it cannot be retrieved later.
 
@@ -221,14 +237,42 @@ Self-service tenant configuration (owner/admin role required for writes).
 | GET | `/tenant/settings` | Get current tenant settings |
 | PATCH | `/tenant/settings` | Update tenant settings (owner/admin only) |
 
+#### Response Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `allowed_numbers` | `string[]` | Phone numbers allowed for outbound messaging |
+| `require_approval` | `bool` | Whether outbound messages require admin approval |
+| `ai_consent_enabled` | `bool` | Whether AI features (auto-reply, style training) are enabled |
+| `chat_history_access_enabled` | `bool` | Whether chat history reading is enabled (Phase 52 — default: `false`) |
+
+> **Chat History Gate (Phase 52)**: `chat_history_access_enabled` controls whether API keys with `messages:read` scope can access chat history. Default is `false` — must be explicitly enabled at **Settings > Account > Data Access**. Sending messages is NOT affected by this setting.
+
+#### Get Tenant Settings
+
+```bash
+curl https://apiv2.waiflow.app/tenant/settings \
+  -H "X-API-Key: $MOLTFLOW_API_KEY"
+```
+
 ### Get Settings — Response
 
 ```json
 {
   "allowed_numbers": ["+5511999999999"],
   "require_approval": false,
-  "ai_consent_enabled": true
+  "ai_consent_enabled": true,
+  "chat_history_access_enabled": false
 }
+```
+
+#### Update Tenant Settings
+
+```bash
+curl -X PATCH https://apiv2.waiflow.app/tenant/settings \
+  -H "X-API-Key: $MOLTFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"chat_history_access_enabled": true}'
 ```
 
 ### Update Settings — Request Body
@@ -239,12 +283,14 @@ All fields are optional. Only provided fields are updated.
 {
   "allowed_numbers": ["+5511999999999", "+5511888888888"],
   "require_approval": true,
-  "ai_consent_enabled": true
+  "ai_consent_enabled": true,
+  "chat_history_access_enabled": true
 }
 ```
 
 **Notes:**
 - `ai_consent_enabled` records a GDPR consent entry (consent type `ai_processing`, version `1.0`) with the user's IP and user-agent.
+- `chat_history_access_enabled` defaults to `false`. Enabling it allows API keys with `messages:read` scope to read chat history.
 - Any authenticated user can read settings; only `owner` or `admin` roles can update.
 
 ---
@@ -296,6 +342,21 @@ Erase all data for a specific phone number within your tenant. This supports GDP
 
 ---
 
+## Account Deletion
+
+Delete your own account and all associated data. This is the GDPR "right to erasure" for your entire account.
+
+```bash
+curl -X DELETE https://apiv2.waiflow.app/api/v2/users/me \
+  -H "X-API-Key: $MOLTFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"current_password": "your-password"}'
+```
+
+> **Account deletion is irreversible.** Requires `current_password` confirmation. Cascades through 32+ tables including messages, sessions, API keys, style profiles, leads, custom groups, and all associated data.
+
+---
+
 ## Admin Endpoints (Superadmin Only)
 
 These endpoints require the `superadmin` role.
@@ -339,7 +400,7 @@ curl -X POST https://apiv2.waiflow.app/api/v2/auth/login \
 curl -X POST https://apiv2.waiflow.app/api/v2/api-keys \
   -H "Authorization: Bearer eyJhbGciOi..." \
   -H "Content-Type: application/json" \
-  -d '{"name": "CI/CD Pipeline"}'
+  -d '{"name": "outreach-bot", "scopes": ["messages:send", "custom-groups:manage", "bulk-send:manage"], "expires_in_days": 90}'
 ```
 
 ### 3. Check Subscription and Limits

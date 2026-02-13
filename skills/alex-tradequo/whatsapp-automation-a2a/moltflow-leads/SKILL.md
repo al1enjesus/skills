@@ -2,7 +2,7 @@
 name: moltflow-leads
 description: "WhatsApp lead detection and CRM pipeline. Auto-detect purchase intent in groups, track lead status, bulk operations, CSV/JSON export. Use when: leads, lead detection, pipeline, qualify, convert, bulk status, export leads."
 source: "MoltFlow Team"
-version: "2.0.0"
+version: "2.1.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -32,6 +32,13 @@ Auto-detect purchase-intent leads from monitored WhatsApp groups, track them thr
 1. **MOLTFLOW_API_KEY** -- Generate from the [MoltFlow Dashboard](https://molt.waiflow.app) under Settings > API Keys
 2. At least one monitored WhatsApp group with keyword detection enabled
 3. Base URL: `https://apiv2.waiflow.app/api/v2`
+
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `leads` | `read/manage` |
+| `groups` | `read` |
 
 ## Authentication
 

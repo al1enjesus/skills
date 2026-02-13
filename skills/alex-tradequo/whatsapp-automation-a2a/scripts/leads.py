@@ -2,6 +2,8 @@
 """
 MoltFlow Leads - Lead Detection, Pipeline Tracking, Bulk Operations
 """
+# Required Scopes: leads:manage, custom-groups:manage
+# Chat History: Not required
 import os
 import json
 import requests

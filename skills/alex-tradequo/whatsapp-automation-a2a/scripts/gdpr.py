@@ -2,6 +2,8 @@
 """
 MoltFlow GDPR - Contact Erasure & Data Export
 """
+# Required Scopes: gdpr:manage
+# Chat History: Not required
 import os
 import json
 import requests
@@ -58,6 +60,7 @@ def delete_account(password: str):
     Requires password confirmation. Permanently removes all tenant-scoped
     data (32+ tables) including sessions, messages, groups, labels, etc.
     """
+    # current_password is required in the request body for identity confirmation
     r = requests.delete(
         f"{BASE_URL}/api/v2/users/me",
         headers=headers,

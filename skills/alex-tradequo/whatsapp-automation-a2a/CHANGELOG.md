@@ -4,6 +4,55 @@ All notable changes to the **MoltFlow Skills** package are documented here.
 
 ---
 
+## v2.3.0 (2026-02-13)
+
+### Added
+- Required API key scopes documentation for all 10 Python scripts
+- Required API key scopes sections in all 8 sub-skill SKILL.md files
+- Chat history consent warnings for scripts and sub-skills that read message history
+- Scoped token support reflecting Phase 51 (Scoped API Keys)
+- Chat history gate warnings reflecting Phase 52 (Chat History Gate)
+
+---
+
+## [2.2.1] - 2026-02-13 — "Security Transparency"
+
+> Explicit privacy & data flow documentation to address ClawHub security scan findings.
+
+### Added
+
+- **Privacy & Data Flow** section in root SKILL.md — documents what data stays local vs server, what BizDev agent reads, and `.moltflow.json` contents (no PII)
+- **API Key Security & Scoping** section — least-privilege recommendations, rotation guidance, test tenant advice
+- `disable-model-invocation: true` added to `moltflow-onboarding` sub-skill frontmatter
+
+### Fixed
+
+- ClawHub security scan "Instruction Scope" info finding — explicit data minimization statements
+- ClawHub security scan "Credentials" info finding — API key scoping documentation
+- ClawHub security scan "Persistence & Privilege" info finding — `.moltflow.json` contents clarified (aggregate counts only, no PII)
+
+---
+
+## [2.2.0] - 2026-02-13 — "BizDev Growth Agent"
+
+> Your AI business development agent — scans your account, mines chats for hidden leads, and suggests data-driven growth plays.
+
+### Added
+
+- **BizDev Growth Agent** (`moltflow-onboarding`) — proactive AI agent that runs a deep account scan, mines chat history for unanswered contacts and VIP conversations, detects unmonitored high-value groups, suggests re-engagement plays, revenue optimization, and testimonial harvesting. Persists config to `.moltflow.json` for repeat scans with delta comparison.
+- Landing page: BizDev feature block with terminal demo + FAQ entry
+- Help page: Section 21 — BizDev Growth Agent with 4 feature cards
+- Root SKILL.md: BizDev row in features table, growth use cases, updated filemap
+
+### Changed
+
+- All 6 sub-skills bumped to v2.1.0
+- `package.json`: added `moltflow-onboarding/` to files, `onboarding` to keywords
+- Root SKILL.md description updated to lead with BizDev agent
+- Filemap updated with `moltflow-onboarding` and missing scripts (`gdpr.py`, `group_monitor.py`)
+
+---
+
 ## [2.1.0] - 2026-02-12 — "Import & Delete"
 
 > Import contacts from WhatsApp groups, delete your account with full cascade, and GDPR scripts for everything.

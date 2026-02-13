@@ -2,6 +2,8 @@
 """
 MoltFlow A2A - Agent Discovery and JSON-RPC Messaging
 """
+# Required Scopes: a2a:manage
+# Chat History: Not required
 import os
 import json
 import requests

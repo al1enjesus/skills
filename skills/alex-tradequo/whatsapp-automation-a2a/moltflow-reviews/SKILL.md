@@ -2,7 +2,7 @@
 name: moltflow-reviews
 description: "Collect and analyze customer reviews from WhatsApp conversations. Sentiment scoring, testimonial extraction, and review management via MoltFlow API."
 source: "MoltFlow Team"
-version: "2.0.0"
+version: "2.1.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -40,6 +40,12 @@ Trigger phrases: "collect reviews", "set up review collector", "export testimoni
 ```
 https://apiv2.waiflow.app/api/v2
 ```
+
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `reviews` | `read/manage` |
 
 ## Authentication
 

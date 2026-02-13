@@ -2,6 +2,8 @@
 """
 MoltFlow AI - Knowledge Base, Style Profiles, and Reply Generation
 """
+# Required Scopes: ai:manage
+# Chat History: Required — style training reads message history
 import os
 import requests
 

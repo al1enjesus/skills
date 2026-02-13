@@ -2,7 +2,7 @@
 name: moltflow
 description: "WhatsApp Business automation API for sessions, messaging, groups, labels, and webhooks. Use when: whatsapp, send message, create session, qr code, monitor group, label contacts, webhook."
 source: "MoltFlow Team"
-version: "2.0.0"
+version: "2.1.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -32,6 +32,20 @@ Manage WhatsApp sessions, send messages, monitor groups, organize with labels, a
 1. **MOLTFLOW_API_KEY** -- Generate from the [MoltFlow Dashboard](https://molt.waiflow.app) under Settings > API Keys
 2. All requests require authentication via `Authorization: Bearer <token>` or `X-API-Key: <key>`
 3. Base URL: `https://apiv2.waiflow.app/api/v2`
+
+## Required API Key Scopes
+
+| Scope | Access |
+|-------|--------|
+| `sessions` | `read/manage` |
+| `messages` | `read/send` |
+| `groups` | `read/manage` |
+| `labels` | `read/manage` |
+| `webhooks` | `read/manage` |
+
+> **Chat History Access**: Reading chat history requires explicit tenant opt-in.
+> Enable at **Settings > Account > Data Access** before using chat-related features.
+> Sending messages does NOT require this consent — only reading history.
 
 ## Authentication
 
