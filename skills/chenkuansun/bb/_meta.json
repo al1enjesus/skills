@@ -1,11 +1,17 @@
 {
   "owner": "chenkuansun",
   "slug": "bb",
-  "displayName": "BullyBuddy Slash Command",
+  "displayName": "Bb",
   "latest": {
-    "version": "0.2.0",
-    "publishedAt": 1770889880130,
-    "commit": "https://github.com/openclaw/skills/commit/d0c20cc2e4c51613a39941fb7af5abf5ee702789"
+    "version": "0.3.0",
+    "publishedAt": 1770925583280,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.0",
+      "publishedAt": 1770889880130,
+      "commit": "https://github.com/openclaw/skills/commit/d0c20cc2e4c51613a39941fb7af5abf5ee702789"
+    }
+  ]
 }
