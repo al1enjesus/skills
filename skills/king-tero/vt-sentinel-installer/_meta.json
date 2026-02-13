@@ -1,0 +1,11 @@
+{
+  "owner": "king-tero",
+  "slug": "vt-sentinel-installer",
+  "displayName": "Vt Sentinel Installer",
+  "latest": {
+    "version": "1.4.0",
+    "publishedAt": 1770941771928,
+    "commit": null
+  },
+  "history": []
+}
