@@ -220,14 +220,11 @@ def validate_graph(graph_path: str, schema_path: str) -> list:
     errors = []
     
     # Load schema if exists
-    schema = {}
-    schema_file = Path(schema_path)
-    if schema_file.exists():
-        import yaml
-        with open(schema_file) as f:
-            schema = yaml.safe_load(f) or {}
+    schema = load_schema(schema_path)
     
     type_schemas = schema.get("types", {})
+    relation_schemas = schema.get("relations", {})
+    global_constraints = schema.get("constraints", [])
     
     for entity_id, entity in entities.items():
         type_name = entity["type"]
@@ -253,7 +250,141 @@ def validate_graph(graph_path: str, schema_path: str) -> list:
                 if value and value not in allowed:
                     errors.append(f"{entity_id}: '{field}' must be one of {allowed}, got '{value}'")
     
+    # Relation constraints (type + cardinality + acyclicity)
+    rel_index = {}
+    for rel in relations:
+        rel_index.setdefault(rel["rel"], []).append(rel)
+    
+    for rel_type, rel_schema in relation_schemas.items():
+        rels = rel_index.get(rel_type, [])
+        from_types = rel_schema.get("from_types", [])
+        to_types = rel_schema.get("to_types", [])
+        cardinality = rel_schema.get("cardinality")
+        acyclic = rel_schema.get("acyclic", False)
+        
+        # Type checks
+        for rel in rels:
+            from_entity = entities.get(rel["from"])
+            to_entity = entities.get(rel["to"])
+            if not from_entity or not to_entity:
+                errors.append(f"{rel_type}: relation references missing entity ({rel['from']} -> {rel['to']})")
+                continue
+            if from_types and from_entity["type"] not in from_types:
+                errors.append(
+                    f"{rel_type}: from entity {rel['from']} type {from_entity['type']} not in {from_types}"
+                )
+            if to_types and to_entity["type"] not in to_types:
+                errors.append(
+                    f"{rel_type}: to entity {rel['to']} type {to_entity['type']} not in {to_types}"
+                )
+        
+        # Cardinality checks
+        if cardinality in ("one_to_one", "one_to_many", "many_to_one"):
+            from_counts = {}
+            to_counts = {}
+            for rel in rels:
+                from_counts[rel["from"]] = from_counts.get(rel["from"], 0) + 1
+                to_counts[rel["to"]] = to_counts.get(rel["to"], 0) + 1
+            
+            if cardinality in ("one_to_one", "many_to_one"):
+                for from_id, count in from_counts.items():
+                    if count > 1:
+                        errors.append(f"{rel_type}: from entity {from_id} violates cardinality {cardinality}")
+            if cardinality in ("one_to_one", "one_to_many"):
+                for to_id, count in to_counts.items():
+                    if count > 1:
+                        errors.append(f"{rel_type}: to entity {to_id} violates cardinality {cardinality}")
+        
+        # Acyclic checks
+        if acyclic:
+            graph = {}
+            for rel in rels:
+                graph.setdefault(rel["from"], []).append(rel["to"])
+            
+            visited = {}
+            
+            def dfs(node, stack):
+                visited[node] = True
+                stack.add(node)
+                for nxt in graph.get(node, []):
+                    if nxt in stack:
+                        return True
+                    if not visited.get(nxt, False):
+                        if dfs(nxt, stack):
+                            return True
+                stack.remove(node)
+                return False
+            
+            for node in graph:
+                if not visited.get(node, False):
+                    if dfs(node, set()):
+                        errors.append(f"{rel_type}: cyclic dependency detected")
+                        break
+    
+    # Global constraints (limited enforcement)
+    for constraint in global_constraints:
+        ctype = constraint.get("type")
+        relation = constraint.get("relation")
+        rule = (constraint.get("rule") or "").strip().lower()
+        if ctype == "Event" and "end" in rule and "start" in rule:
+            for entity_id, entity in entities.items():
+                if entity["type"] != "Event":
+                    continue
+                start = entity["properties"].get("start")
+                end = entity["properties"].get("end")
+                if start and end:
+                    try:
+                        start_dt = datetime.fromisoformat(start)
+                        end_dt = datetime.fromisoformat(end)
+                        if end_dt < start_dt:
+                            errors.append(f"{entity_id}: end must be >= start")
+                    except ValueError:
+                        errors.append(f"{entity_id}: invalid datetime format in start/end")
+        if relation and rule == "acyclic":
+            # Already enforced above via relations schema
+            continue
+    
     return errors
+
+
+def load_schema(schema_path: str) -> dict:
+    """Load schema from YAML if it exists."""
+    schema = {}
+    schema_file = Path(schema_path)
+    if schema_file.exists():
+        import yaml
+        with open(schema_file) as f:
+            schema = yaml.safe_load(f) or {}
+    return schema
+
+
+def write_schema(schema_path: str, schema: dict) -> None:
+    """Write schema to YAML."""
+    schema_file = Path(schema_path)
+    schema_file.parent.mkdir(parents=True, exist_ok=True)
+    import yaml
+    with open(schema_file, "w") as f:
+        yaml.safe_dump(schema, f, sort_keys=False)
+
+
+def merge_schema(base: dict, incoming: dict) -> dict:
+    """Merge incoming schema into base, appending lists and deep-merging dicts."""
+    for key, value in (incoming or {}).items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            base[key] = merge_schema(base[key], value)
+        elif key in base and isinstance(base[key], list) and isinstance(value, list):
+            base[key] = base[key] + [v for v in value if v not in base[key]]
+        else:
+            base[key] = value
+    return base
+
+
+def append_schema(schema_path: str, incoming: dict) -> dict:
+    """Append/merge schema fragment into existing schema."""
+    base = load_schema(schema_path)
+    merged = merge_schema(base, incoming)
+    write_schema(schema_path, merged)
+    return merged
 
 
 def main():
@@ -313,6 +444,12 @@ def main():
     validate_p = subparsers.add_parser("validate", help="Validate graph")
     validate_p.add_argument("--graph", "-g", default=DEFAULT_GRAPH_PATH)
     validate_p.add_argument("--schema", "-s", default=DEFAULT_SCHEMA_PATH)
+
+    # Schema append
+    schema_p = subparsers.add_parser("schema-append", help="Append/merge schema fragment")
+    schema_p.add_argument("--schema", "-s", default=DEFAULT_SCHEMA_PATH)
+    schema_p.add_argument("--data", "-d", help="Schema fragment as JSON")
+    schema_p.add_argument("--file", "-f", help="Schema fragment file (YAML or JSON)")
     
     args = parser.parse_args()
     
@@ -368,6 +505,28 @@ def main():
                 print(f"  - {err}")
         else:
             print("Graph is valid.")
+    
+    elif args.command == "schema-append":
+        if not args.data and not args.file:
+            raise SystemExit("schema-append requires --data or --file")
+        
+        incoming = {}
+        if args.data:
+            incoming = json.loads(args.data)
+        else:
+            path = Path(args.file)
+            if not path.exists():
+                raise SystemExit(f"Schema fragment file not found: {args.file}")
+            if path.suffix.lower() == ".json":
+                with open(path) as f:
+                    incoming = json.load(f)
+            else:
+                import yaml
+                with open(path) as f:
+                    incoming = yaml.safe_load(f) or {}
+        
+        merged = append_schema(args.schema, incoming)
+        print(json.dumps(merged, indent=2))
 
 
 if __name__ == "__main__":
