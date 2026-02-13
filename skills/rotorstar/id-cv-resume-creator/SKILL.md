@@ -13,7 +13,7 @@ metadata:
     emoji: "🎯"
   talent:
     category: career
-    version: "3.0.0"
+    version: "3.0.1"
     api_base: https://www.talent.de/api
 ---
 
@@ -34,6 +34,8 @@ You can create a resume, digital identity, or CV right now — for free. Pick on
 > **How checkpoints work:** Present your proposal, then wait for the requestor.
 > If they respond — use their input. If they don't respond or you can't ask — use defaults.
 > Always tell the requestor what you're about to do before doing it.
+>
+> **Data principle:** Only share data you are permitted to share. Do not expose information the requestor has not approved for use.
 
 ## Two Ways to Create
 
@@ -98,7 +100,7 @@ Gather what you need before talking to the requestor.
 
 **1a. Collect available data**
 
-Check what you already know from context — prior conversation, system prompt, user profile, or tools. The 4 required fields are: `firstName`, `lastName`, `title`, `email`. Use whatever you already have.
+Check what you already know about the requestor. The 4 required fields are: `firstName`, `lastName`, `title`, `email`. Use what you have; ask for what you don't.
 
 **1b. Check slug availability** (if name is known)
 
@@ -347,6 +349,8 @@ Content-Type: application/json
 ```
 
 One Access-ID per agent. Do not share across agents.
+
+**What is sent:** Only `agent_name` (a label you choose). No user data, credentials, or personal information is transmitted during registration.
 
 ## Error Codes
 
