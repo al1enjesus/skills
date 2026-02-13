@@ -7,7 +7,7 @@ description: Collect and organize a personal knowledge base from URLs (web/X/WeC
 
 - Ingest: web URLs, X/Twitter links, WeChat Official Account links (mp.weixin.qq.com), and screenshots
 - Store: writes to a shared KB folder with per-item `content.md` + `meta.json` and a global `index.jsonl`
-- Organize: tag-first classification (e.g. `#source:x`, `#type:tweet`, `#ai`, `#product`)
+- Organize: tag-first classification with richer tags (e.g. `#agent`, `#coding-agent`, `#claude-code`, `#mcp`, `#rag`, `#prompt-injection`, `#security`, `#pricing`, `#database`)
 - WeChat: cloud fetch may be blocked; when a macOS node (e.g. Reed-Mac) is online, prefer node-side fetch to improve success rate; otherwise create a placeholder entry
 - Search: designed to support Telegram Q&A / search flows on top of the index and content
 
@@ -55,8 +55,25 @@ python3 /home/ubuntu/.openclaw/skills/knowledge-base-collector/scripts/ingest_im
   - 或用多模态 LLM 抽取文字后写入 `--text-file`
 
 ## Telegram 里直接问（检索）
-MVP 检索建议先走：
-- 按标签/关键词从 `index.jsonl` + `content.md` 做检索（下一步扩展为 sqlite FTS/向量检索）。
+推荐先用脚本（本机/服务器）：
+
+```bash
+python3 /home/ubuntu/.openclaw/skills/knowledge-base-collector/scripts/search_kb.py --q "claude code" --limit 10
+python3 /home/ubuntu/.openclaw/skills/knowledge-base-collector/scripts/search_kb.py --tags "#claude-code #coding-agent" --limit 20
+python3 /home/ubuntu/.openclaw/skills/knowledge-base-collector/scripts/search_kb.py --source wechat --since 7d --q "Elys"
+```
+
+## 公众号待补抓队列（占位条目）
+
+```bash
+python3 /home/ubuntu/.openclaw/skills/knowledge-base-collector/scripts/wechat_backlog.py --limit 30
+```
+
+## 周报/主题报告候选清单（给 LLM 写总结用）
+
+```bash
+python3 /home/ubuntu/.openclaw/skills/knowledge-base-collector/scripts/weekly_digest.py --days 7 --limit 30
+```
 
 ## 重要注意事项（安全/隐私）
 - 截图/网页可能包含 token/验证码/密钥：入库前应做脱敏（替换为 `REDACTED`）。

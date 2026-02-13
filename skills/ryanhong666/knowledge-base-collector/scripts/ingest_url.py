@@ -120,24 +120,11 @@ def parse_jina_text(text: str) -> Tuple[Optional[str], str]:
 
 
 def infer_tags(url: str, title: str, body: str, base: List[str]) -> List[str]:
-    tags = list(base)
-    low = (title + "\n" + body).lower()
+    # richer rule-based tagger
+    from tagger import infer_tags_from_text
 
-    if any(k in low for k in ["agent", "llm", "claude", "codex", "openai", "mcp", "prompt injection", "whisper", "transformer", "rag"]):
-        tags.append("#ai")
-    if any(k in low for k in ["pricing", "revenue", "startup", "retention", "growth", "acquisition"]):
-        tags.append("#growth")
-    if any(k in low for k in ["k8s", "kubernetes", "postgres", "mysql", "redis", "latency", "perf", "benchmark"]):
-        tags.append("#engineering")
-    if any(k in low for k in ["btc", "eth", "options", "vol", "portfolio", "pnl", "risk"]):
-        tags.append("#trading")
-
-    # de-dup while preserving order
-    out: List[str] = []
-    for t in tags:
-        if t and t not in out:
-            out.append(t)
-    return out
+    text = f"{title}\n{body}\n{url}"
+    return infer_tags_from_text(text, base_tags=base)
 
 
 def write_kb_entry(

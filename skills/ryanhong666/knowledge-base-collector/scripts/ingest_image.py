@@ -58,23 +58,9 @@ def index_path(kb_root: str) -> str:
 
 
 def infer_tags(text: str, base: List[str]) -> List[str]:
-    tags = list(base)
-    low = (text or "").lower()
+    from tagger import infer_tags_from_text
 
-    if any(k in low for k in ["agent", "llm", "claude", "codex", "openai", "mcp", "prompt injection", "whisper", "transformer", "rag"]):
-        tags.append("#ai")
-    if any(k in low for k in ["pricing", "revenue", "startup", "retention", "growth", "acquisition"]):
-        tags.append("#growth")
-    if any(k in low for k in ["k8s", "kubernetes", "postgres", "mysql", "redis", "latency", "perf", "benchmark"]):
-        tags.append("#engineering")
-    if any(k in low for k in ["btc", "eth", "options", "vol", "portfolio", "pnl", "risk"]):
-        tags.append("#trading")
-
-    out: List[str] = []
-    for t in tags:
-        if t and t not in out:
-            out.append(t)
-    return out
+    return infer_tags_from_text(text or "", base_tags=base)
 
 
 def main() -> int:
