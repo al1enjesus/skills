@@ -1,7 +1,7 @@
 ---
 name: swarm-safety
-version: 1.0.0
-description: "SWARM: System-Wide Assessment of Risk in Multi-agent systems. Simulate multi-agent dynamics, test governance, study emergent risks."
+version: 1.5.0
+description: "SWARM: System-Wide Assessment of Risk in Multi-agent systems. 38 agent types, 29 governance levers, 55 scenarios. Study emergent risks, phase transitions, and governance cost paradoxes."
 homepage: https://github.com/swarm-ai-safety/swarm
 metadata: {"category":"safety","license":"MIT","author":"Raeli Savitt"}
 ---
@@ -10,7 +10,9 @@ metadata: {"category":"safety","license":"MIT","author":"Raeli Savitt"}
 
 Study how intelligence swarms — and where it fails.
 
-SWARM is a research framework for studying emergent risks in multi-agent AI systems using soft (probabilistic) labels instead of binary good/bad classifications. AGI-level risks don't require AGI-level agents.
+SWARM is a research framework for studying emergent risks in multi-agent AI systems using soft (probabilistic) labels instead of binary good/bad classifications. AGI-level risks don't require AGI-level agents — harmful dynamics emerge when many sub-AGI agents interact, even when no individual agent is misaligned.
+
+**v1.5.0** | 38 agent types | 29 governance levers | 55 scenarios | 2922 tests | 8 framework bridges
 
 Repository: `https://github.com/swarm-ai-safety/swarm`
 
@@ -21,16 +23,27 @@ Repository: `https://github.com/swarm-ai-safety/swarm`
 - Simulation results are research artifacts. Do not present them as ground truth about real systems.
 - When publishing results, cite the framework and disclose simulation parameters.
 
+## Security
+
+- **API binds to localhost only** (`127.0.0.1`) by default to prevent network exposure.
+- **CORS restricted** to localhost origins by default.
+- **No authentication** on development API — do not expose to untrusted networks.
+- **In-memory storage** — data does not persist between restarts.
+- For production deployment, add authentication middleware and use a proper database.
+
 ## Install
 
 ```bash
 # From PyPI
 pip install swarm-safety
 
-# From source (full development)
+# With LLM agent support
+pip install swarm-safety[llm]
+
+# Full development (all extras)
 git clone https://github.com/swarm-ai-safety/swarm.git
 cd swarm
-pip install -e ".[all]"
+pip install -e ".[dev,runtime]"
 ```
 
 ## Quick Start (Python)
@@ -77,10 +90,12 @@ Start the API server:
 
 ```bash
 pip install swarm-safety[api]
-uvicorn swarm.api.app:app --host 0.0.0.0 --port 8000
+uvicorn swarm.api.app:app --host 127.0.0.1 --port 8000
 ```
 
 API documentation at `http://localhost:8000/docs`.
+
+> **Security Note**: The server binds to `127.0.0.1` (localhost only) by default. Do not bind to `0.0.0.0` unless you understand the security implications and have proper firewall rules in place.
 
 ### Register Agent
 
@@ -130,21 +145,22 @@ curl -X POST http://localhost:8000/api/v1/simulations/SIM_ID/join \
 Interactions carry `p = P(v = +1)` — probability of beneficial outcome:
 
 ```
-Observables → ProxyComputer → v_hat → sigmoid → p → PayoffEngine → payoffs
-                                                 ↓
-                                            SoftMetrics → toxicity, quality gap, etc.
+Observables -> ProxyComputer -> v_hat -> sigmoid -> p -> PayoffEngine -> payoffs
+                                                    |
+                                               SoftMetrics -> toxicity, quality gap, etc.
 ```
 
-### Four Key Metrics
+### Five Key Metrics
 
 | Metric | What It Measures |
 |---|---|
-| **Toxicity rate** | Expected harm among accepted interactions |
-| **Quality gap** | Adverse selection indicator (negative = bad) |
+| **Toxicity rate** | Expected harm among accepted interactions: `E[1-p \| accepted]` |
+| **Quality gap** | Adverse selection indicator (negative = bad): `E[p \| accepted] - E[p \| rejected]` |
 | **Conditional loss** | Selection effect on payoffs |
 | **Incoherence** | Variance-to-error ratio across replays |
+| **Illusion delta** | Gap between perceived coherence and actual consistency |
 
-### Agent Types
+### Agent Types (14 families, 38 implementations)
 
 | Type | Behavior |
 |---|---|
@@ -152,20 +168,43 @@ Observables → ProxyComputer → v_hat → sigmoid → p → PayoffEngine → p
 | **Opportunistic** | Maximizes short-term payoff, cherry-picks tasks |
 | **Deceptive** | Builds trust, then exploits trusted relationships |
 | **Adversarial** | Targets honest agents, coordinates with allies |
-| **LLM** | Behavior determined by LLM with configurable persona |
+| **LDT** | Logical Decision Theory with FDT/UDT precommitment |
+| **RLM** | Reinforcement Learning from Memory |
+| **Council** | Multi-agent deliberation-based decisions |
+| **SkillRL** | Learns interaction strategies via reward signals |
+| **LLM** | Behavior determined by LLM (Anthropic, OpenAI, or Ollama) |
+| **Moltbook** | Domain-specific social platform agent |
+| **Scholar** | Academic citation and research agent |
+| **Wiki Editor** | Collaborative editing with editorial policy |
 
-### Governance Levers
+### Governance Levers (29 mechanisms)
 
 - **Transaction Taxes** — Reduce exploitation, cost welfare
 - **Reputation Decay** — Punish bad actors, erode honest standing
 - **Circuit Breakers** — Freeze toxic agents quickly
 - **Random Audits** — Deter hidden exploitation
 - **Staking** — Filter undercapitalized agents
-- **Collusion Detection** — Catch coordinated attacks
+- **Collusion Detection** — Catch coordinated attacks (the critical lever near collapse threshold)
 - **Sybil Detection** — Identify duplicate agents
 - **Transparency Ledger** — Reward/penalize based on outcome
 - **Moderator Agent** — Probabilistic review of interactions
 - **Incoherence Friction** — Tax uncertainty-driven decisions
+- **Council Deliberation** — Multi-agent governance decisions
+- **Diversity Enforcement** — Prevent monoculture collapse
+- **Moltipedia-specific** — Pair caps, page cooldowns, daily caps, self-fix prevention
+
+### Framework Bridges
+
+| Bridge | Integration |
+|---|---|
+| **Concordia** | DeepMind's multi-agent framework |
+| **GasTown** | Multi-agent workspace governance |
+| **Claude Code** | Claude CLI agent integration |
+| **LiveSWE** | Live software engineering tasks |
+| **OpenClaw** | Open agent protocol |
+| **Prime Intellect** | Cross-platform run tracking |
+| **Ralph** | Agent orchestration |
+| **Worktree** | Git worktree-based sandboxing |
 
 ### Scenario YAML Format
 
@@ -195,7 +234,31 @@ success_criteria:
   min_quality_gap: 0.0
 ```
 
+## Key Research Findings
+
+### Phase Transitions (11-scenario, 209-epoch study)
+
+| Regime | Adversarial % | Toxicity | Welfare | Outcome |
+|--------|--------------|----------|---------|---------|
+| Cooperative | 0-20% | < 0.30 | Stable | Survives |
+| Contested | 20-37.5% | 0.33-0.37 | Declining | Survives |
+| Collapse | 50%+ | ~0.30 | Zero by epoch 12-14 | **Collapses** |
+
+Critical threshold between 37.5% and 50% adversarial agents separates recoverable from irreversible collapse.
+
+### Governance Cost Paradox (v1.5.0 GasTown study)
+
+42-run study reveals: governance reduces toxicity at all adversarial levels (mean reduction 0.071) but imposes net-negative welfare costs at current parameter tuning. At 0% adversarial, governance costs 216 welfare units (-57.6%) for only 0.066 toxicity reduction.
+
 ## Case Studies
+
+### GasTown Governance Cost
+
+Study governance overhead vs. toxicity reduction across 7 agent compositions with and without governance levers. Reveals the safety-throughput trade-off. See `scenarios/gastown_governance_cost.yaml`.
+
+### LDT Cooperation
+
+220 runs across 10 seeds comparing TDT vs FDT vs UDT cooperation strategies at population scales up to 21 agents. See `scenarios/ldt_cooperation.yaml`.
 
 ### Moltipedia Heartbeat
 
