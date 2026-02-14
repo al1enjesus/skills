@@ -1,0 +1,11 @@
+{
+  "owner": "l-fy",
+  "slug": "myfeed",
+  "displayName": "My Life Feed",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1771064127407,
+    "commit": null
+  },
+  "history": []
+}
