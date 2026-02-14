@@ -4,3 +4,11 @@
 Date: 2026-02-14
 
 光電效應測試記憶：愛因斯坦1905年提出光電效應解釋，E=hf-φ
+---
+
+# QST理論核心：Spinor-Ether場Ψ_SE與分形維度D(x)耦合
+
+[QST_Physics] [C]
+Date: 2026-02-14
+
+QST理論核心：Spinor-Ether場Ψ_SE與分形維度D(x)耦合

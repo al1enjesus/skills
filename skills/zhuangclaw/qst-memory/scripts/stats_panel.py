@@ -18,6 +18,7 @@ from typing import Dict, List
 SKILL_DIR = Path(__file__).parent.parent
 CONFIG_FILE = SKILL_DIR / "config.yaml"
 MEMORY_DIR = SKILL_DIR.parent / "memory"
+MEMORY_FILE = SKILL_DIR / "data" / "qst_memories.md"  # 獨立存儲
 
 
 def load_config() -> dict:
@@ -71,10 +72,9 @@ def count_memories() -> dict:
         "total": 0
     }
     
-    memory_files = list(MEMORY_DIR.glob("*.md"))
-    
-    for mf in memory_files:
-        with open(mf, 'r', encoding='utf-8') as f:
+    # 從獨立存儲讀取
+    if MEMORY_FILE.exists():
+        with open(MEMORY_FILE, 'r', encoding='utf-8') as f:
             content = f.read()
             
             counts["critical"] += content.count("[C]")

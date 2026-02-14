@@ -3,11 +3,16 @@
   "slug": "qst-memory",
   "displayName": "Qst Memory",
   "latest": {
-    "version": "1.5.2",
-    "publishedAt": 1771087993814,
-    "commit": "https://github.com/openclaw/skills/commit/153eb3350e3321c0996cc9e8163bff08ebcba404"
+    "version": "1.5.3",
+    "publishedAt": 1771088226126,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.2",
+      "publishedAt": 1771087993814,
+      "commit": "https://github.com/openclaw/skills/commit/153eb3350e3321c0996cc9e8163bff08ebcba404"
+    },
     {
       "version": "1.2.2",
       "publishedAt": 1771049046076,
