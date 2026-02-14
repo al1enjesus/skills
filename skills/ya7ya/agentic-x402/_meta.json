@@ -3,11 +3,16 @@
   "slug": "agentic-x402",
   "displayName": "Agentic X402",
   "latest": {
-    "version": "0.2.1",
-    "publishedAt": 1770819844811,
-    "commit": "https://github.com/openclaw/skills/commit/a8c0c55a949620034d012ca64228c168e1b22c95"
+    "version": "0.2.6",
+    "publishedAt": 1771065257000,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.1",
+      "publishedAt": 1770819844811,
+      "commit": "https://github.com/openclaw/skills/commit/a8c0c55a949620034d012ca64228c168e1b22c95"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1770722757447,

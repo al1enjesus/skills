@@ -3,9 +3,8 @@ name: agentic-x402
 description: Make x402 payments to access gated APIs and content. Fetch paid resources, check wallet balance, and create payment links. Use when encountering 402 Payment Required responses or when the user wants to pay for web resources with crypto.
 license: MIT
 compatibility: Requires Node.js 20+, network access to x402 facilitators and EVM chains
-metadata:
-  author: monemetrics
-  version: "0.2.1"
+homepage: https://www.npmjs.com/package/agentic-x402
+metadata: {"author": "monemetrics", "version": "0.2.6", "openclaw": {"requires": {"bins": ["x402"], "env": ["EVM_PRIVATE_KEY"]}, "primaryEnv": "EVM_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "agentic-x402", "bins": ["x402"], "label": "Install agentic-x402 (npm)"}]}}
 allowed-tools: Bash(x402:*) Bash(npm:*) Read
 ---
 
@@ -130,7 +129,6 @@ Create payment links to monetize your own content using x402-links-server:
 Add to `.env`:
 ```bash
 X402_LINKS_API_URL=https://your-x402-links-server.com
-X402_LINKS_API_KEY=your_api_key
 ```
 
 ### Create a link
@@ -255,7 +253,6 @@ x402 link-info <router-address> [--json]
 | `X402_SLIPPAGE_BPS` | Slippage tolerance in basis points (100 bps = 1%) | `50` |
 | `X402_VERBOSE` | Enable verbose logging (`1` = on, `0` = off) | `0` |
 | `X402_LINKS_API_URL` | Base URL of x402-links-server (e.g., `https://21.cash`) | — |
-| `X402_LINKS_API_KEY` | API key for programmatic link creation | — |
 
 ## Supported Networks
 

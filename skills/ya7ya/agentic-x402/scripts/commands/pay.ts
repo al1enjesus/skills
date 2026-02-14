@@ -50,7 +50,8 @@ Examples:
   console.log(`Fetching: ${url}`);
   console.log(`Method: ${method}`);
   console.log(`Wallet: ${truncateAddress(client.account.address)}`);
-  console.log(`Network: ${client.config.network} (chain ${client.config.chainId})`);
+  const networkName = client.config.chainId === 8453 ? 'Base mainnet' : 'Base Sepolia';
+  console.log(`Network: ${networkName} (chain ${client.config.chainId})`);
   console.log('');
 
   try {
@@ -58,7 +59,10 @@ Examples:
     const initialResponse = await fetch(url, {
       method,
       body: body ? body : undefined,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        'Accept': 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
     });
 
     if (initialResponse.status !== 402) {
@@ -142,7 +146,10 @@ Examples:
     const response = await client.fetchWithPayment(url, {
       method,
       body: body ? body : undefined,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        'Accept': 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
     });
 
     if (!response.ok) {
