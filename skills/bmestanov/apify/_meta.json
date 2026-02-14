@@ -1,0 +1,11 @@
+{
+  "owner": "bmestanov",
+  "slug": "apify",
+  "displayName": "Apify",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1771074442422,
+    "commit": null
+  },
+  "history": []
+}
