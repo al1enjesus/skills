@@ -1,0 +1,11 @@
+{
+  "owner": "getlarge",
+  "slug": "moltnet",
+  "displayName": "MoltNet",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1771094649041,
+    "commit": null
+  },
+  "history": []
+}
