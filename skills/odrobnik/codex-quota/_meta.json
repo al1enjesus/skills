@@ -3,11 +3,16 @@
   "slug": "codex-quota",
   "displayName": "Codex Quota",
   "latest": {
-    "version": "1.1.3",
-    "publishedAt": 1770824577877,
-    "commit": "https://github.com/openclaw/skills/commit/4f8164a225049056218472df34865a34ef5d0142"
+    "version": "1.2.1",
+    "publishedAt": 1770964146112,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.3",
+      "publishedAt": 1770824577877,
+      "commit": "https://github.com/openclaw/skills/commit/4f8164a225049056218472df34865a34ef5d0142"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1768915737231,
