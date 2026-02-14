@@ -51,6 +51,54 @@ For a bulletproof dashboard (Memory + Projects cards), run:
 This syncs memory AND upserts per-project markdown cards:
 `TASKS.md`, `IDEAS.md`, `CHANGELOG.md`, `CHALLENGES.md` → DB → Brain Dashboard.
 
+## 🏷️ Memory Categorization (REQUIRED)
+
+**Every memory MUST be properly categorized.** Use these 8 standard categories:
+
+| Category | Color | Use For | Path Prefix | Primary Tag |
+|----------|-------|---------|-------------|-------------|
+| **Identity** | 🔴 Red | Who you are, user profiles, team structure | `identity/` | `["identity", ...]` |
+| **Knowledge** | 🟠 Orange | Facts, research, documentation | `knowledge/` | `["knowledge", ...]` |
+| **Memory** | 🟣 Purple | Long-term memories, learnings, decisions | `memory/` | `["memory", ...]` |
+| **Preferences** | 🔵 Blue | User preferences, settings, style | `preferences/` | `["preferences", ...]` |
+| **Projects** | 🟢 Green | Active work, tasks, code context | `projects/` | `["project", "<name>"]` |
+| **Operations** | 🟤 Brown | Daily logs, status, heartbeat state | `operations/` | `["operations", ...]` |
+| **Secrets** | ⚪ Gray | Access info, server locations (NOT actual keys!) | `secrets/` | `["secrets", ...]` |
+| **Protocols** | 🔵 Cyan | SOPs, checklists, procedures | `protocols/` | `["protocols", ...]` |
+
+### Path Structure
+```
+<category>/<subcategory>/<item>
+
+Examples:
+identity/user/ben-profile
+knowledge/research/ai-agents-market
+memory/learnings/2026-02-mistakes
+preferences/user/communication-style
+projects/agentos/tasks
+operations/daily/2026-02-13
+secrets/access/hetzner-server
+protocols/deploy/agentos-checklist
+```
+
+### Tagging Rules
+Every memory MUST have:
+1. **Primary category tag** — one of the 8 categories
+2. **Subcategory tag** — more specific classification
+3. **Optional project tag** — if project-related
+
+```bash
+# Example: Store a learning with proper tags
+AOS_TAGS='["memory", "learnings"]' AOS_SEARCHABLE=true \
+  aos_put "/memory/learnings/2026-02-13" '{"lesson": "Always categorize memories"}'
+
+# Example: Store user preference
+AOS_TAGS='["preferences", "user"]' \
+  aos_put "/preferences/user/communication" '{"style": "direct, no fluff"}'
+```
+
+---
+
 ## Quick Start
 
 ```bash
