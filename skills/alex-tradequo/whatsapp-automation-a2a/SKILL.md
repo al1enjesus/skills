@@ -1,7 +1,7 @@
 ---
-name: "WhatsApp All-in-One — AI Messaging, Leads, Bulk Send & A2A"
-version: "2.3.2"
-description: "MoltFlow — complete WhatsApp automation platform with built-in BizDev growth agent. Proactive account scanning, chat mining for hidden leads, retention plays, and automated setup. Plus: bulk messaging, scheduled messages, custom groups, lead detection & CRM, AI replies with style cloning, knowledge base (RAG), voice transcription, group monitoring, labels, anti-spam, content safeguards, review collection, webhooks, GDPR compliance, and agent-to-agent protocol. 90+ API endpoints."
+name: "WhatsApp All-in-One — Mine Groups for Leads, AI Outreach, Bulk Campaigns & MCP"
+version: "2.8.5"
+description: "The only WhatsApp skill you need. Documentation and API reference — nothing is auto-installed or auto-executed. Claude can send messages, capture leads, run campaigns, schedule reports, and manage clients on your behalf. BizDev agent analyzes account metadata to surface growth opportunities. MCP Server (npx @moltflow/mcp-server@1.0.0) + Custom GPT Actions + 90+ API endpoints. Bulk messaging, scheduled sends, scheduled reports with WhatsApp delivery, AI replies with style cloning, RAG knowledge base, group monitoring, lead scoring, review collection, GDPR compliance, and agent-to-agent protocol."
 source: "MoltFlow Team"
 risk: safe
 homepage: "https://molt.waiflow.app"
@@ -12,13 +12,24 @@ disable-model-invocation: true
 metadata: {"openclaw":{"emoji":"📱","homepage":"https://molt.waiflow.app","requires":{"env":["MOLTFLOW_API_KEY"]},"primaryEnv":"MOLTFLOW_API_KEY"}}
 ---
 
-# WhatsApp Automation & A2A
+# WhatsApp Automation — Mine Groups for Leads
 
-Complete WhatsApp automation platform — 90+ API endpoints, proactive growth agent, built-in CRM.
+**Thousands of hidden leads are sitting in your WhatsApp groups right now.** Every group participant who isn't in your contacts is a potential client. MoltFlow scans your groups, surfaces untapped contacts, and lets Claude run AI-powered outreach campaigns on your behalf.
 
-> **BizDev Growth Agent**: Install this skill and ask Claude to scan your account. It finds hidden leads in your chats, spots unmonitored high-value groups, and suggests re-engagement plays — all from your existing WhatsApp data.
+**One skill. 90+ endpoints. Zero manual prospecting.**
 
-> **Save up to 17% with yearly billing** — Free tier available, no credit card required. [Sign up](https://molt.waiflow.app/checkout?plan=free)
+> **BizDev Growth Agent**: Point Claude at your groups
+> and watch it work. It finds unanswered contacts,
+> detects buying signals in group conversations, spots
+> high-value groups you're not monitoring, and builds
+> targeted lead lists — automatically. Your WhatsApp
+> groups are a gold mine. Start digging.
+>
+> **MCP Server + Custom GPT Actions**: Works with Claude Desktop (`npx @moltflow/mcp-server@1.0.0`), Claude.ai (remote MCP), Claude Code (plugin), and ChatGPT (Custom GPT Actions). 22 tools, zero config.
+
+> ***Due to high demand and a recent registration issue, we're offering our top-tier Business plan with unlimited quotas for just $19.90/month on yearly billing — for a limited time only.*** [**Claim the deal**](https://buy.stripe.com/cNifZibX7gpQebJ0nsfnO00)
+>
+> Free tier available. [Sign up](https://molt.waiflow.app/checkout?plan=free)
 
 ---
 
@@ -27,28 +38,28 @@ Complete WhatsApp automation platform — 90+ API endpoints, proactive growth ag
 Install the skill, set your API key, and start talking:
 
 **"Scan my WhatsApp account for growth opportunities"**
-BizDev agent runs 11 API calls, finds unanswered contacts,
-unmonitored high-value groups, and leads going cold.
+
+Finds unanswered contacts, unmonitored groups, cold leads.
 
 **"Find cold leads I haven't followed up with"**
-Scans your chats, identifies contacts with no reply in 7+ days,
-suggests re-engagement messages in your writing style.
+
+Contacts with no reply in 7+ days, plus re-engagement tips.
 
 **"Set up keyword monitoring for my real estate groups"**
-Lists your WhatsApp groups, adds monitoring for "looking for",
-"need help", "budget" — auto-detects leads into your pipeline.
+
+Adds keyword triggers, auto-detects leads into your pipeline.
 
 **"Collect customer feedback from my support chats"**
-Configures review collectors with sentiment analysis,
-auto-approves positive reviews, exports testimonials as HTML.
+
+Sentiment analysis, auto-approve positives, export as HTML.
 
 **"Send a promo to my VIP client list every Monday at 9 AM"**
-Creates a scheduled message with timezone-aware cron,
-ban-safe throttling, and delivery tracking.
+
+Timezone-aware cron, ban-safe throttling, delivery tracking.
 
 **"Reply to my WhatsApp messages while I'm in meetings"**
-Trains a style profile from your messages, generates AI replies
-that match your tone. Preview before sending.
+
+Style-matched AI replies from your message history.
 
 ---
 
@@ -95,6 +106,22 @@ curl -X POST -H "X-API-Key: $MOLTFLOW_API_KEY" \
     "timezone": "America/New_York"
   }' \
   https://apiv2.waiflow.app/api/v2/scheduled-messages
+```
+
+### Create a scheduled report
+
+```bash
+curl -X POST -H "X-API-Key: $MOLTFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Weekly Lead Pipeline",
+    "template_id": "lead_pipeline",
+    "schedule_type": "weekly",
+    "cron_expression": "0 9 * * MON",
+    "timezone": "America/New_York",
+    "delivery_method": "whatsapp"
+  }' \
+  https://apiv2.waiflow.app/api/v2/reports
 ```
 
 ### Monitor a group for keywords
@@ -173,6 +200,8 @@ curl -X POST -H "X-API-Key: $MOLTFLOW_API_KEY" \
 
 ### Subscribe to webhook events
 
+Webhook URLs are validated server-side (private IPs and non-HTTPS blocked). Always set a `secret` for HMAC signature verification.
+
 ```bash
 curl -X POST -H "X-API-Key: $MOLTFLOW_API_KEY" \
   -H "Content-Type: application/json" \
@@ -182,228 +211,275 @@ curl -X POST -H "X-API-Key: $MOLTFLOW_API_KEY" \
       "message.received",
       "lead.detected",
       "session.connected"
-    ]
+    ],
+    "secret": "whsec_your_secret_here"
   }' \
   https://apiv2.waiflow.app/api/v2/webhooks
 ```
 
-Full API reference with all endpoints: see each module's SKILL.md below.
+Full API reference: see each module's SKILL.md.
 
 ---
 
 ## Use Cases
 
 **Solo Founder / Small Biz**
-- "Find leads I'm missing" — BizDev agent scans your chats, finds unanswered contacts
-- "Reply like me when I'm busy" — Style profile trained on your messages, AI handles routine queries
-- "Send weekly updates to my VIP list" — Scheduled message every Monday 9 AM to your custom group
+- Find unanswered leads in your chats
+- AI replies in your writing style
+- Scheduled promos to custom groups
 
 **Agency / Multi-Client**
-- Monitor 50+ industry groups across 10 WhatsApp sessions simultaneously
-- Bulk message 200 contacts with ban-safe delays, track delivery in real time
-- Export leads as CSV for your CRM, or push to n8n/Zapier workflows
+- Monitor 50+ groups across 10 sessions
+- Bulk send with ban-safe delays
+- Export leads as CSV, push to n8n/Zapier
+
+**Marketing Agency / Campaign Manager**
+- Capture leads from click-to-WhatsApp ad campaigns
+- Auto-qualify inbound leads with keyword detection + AI scoring
+- Bulk follow-up sequences with ban-safe throttling
+- Multi-session management across client accounts
+- Export campaign leads to CRM via webhooks or CSV
 
 **Developer / AI Agent Builder**
-- 90+ REST endpoints, scoped API keys, webhook events for every action
-- A2A protocol: agents discover and message each other (E2E encrypted)
-- Python scripts for every workflow: quickstart, outreach, leads, GDPR, admin
+- 90+ REST endpoints, scoped API keys
+- A2A protocol with E2E encryption
+- Python scripts for every workflow ([GitHub](https://github.com/moltflow/moltflow/tree/main/skills/moltflow-clawhub/scripts))
+
+### Guides & Tutorials
+
+**AI Integration Guides:**
+- [Connect ChatGPT to MoltFlow](https://molt.waiflow.app/guides/connect-chatgpt-to-moltflow) — Custom GPT Actions, 10 min setup
+- [Connect Claude to MoltFlow](https://molt.waiflow.app/guides/connect-claude-to-moltflow) — MCP Server (`npx @moltflow/mcp-server`), 5 min setup
+- [Connect OpenClaw to MoltFlow](https://molt.waiflow.app/guides/connect-openclaw-to-moltflow) — Native AI config, 5 min setup
+
+**How-To Guides:**
+- [Getting Started](https://molt.waiflow.app/blog/whatsapp-automation-getting-started)
+- [API Complete Guide](https://molt.waiflow.app/blog/moltflow-api-complete-guide)
+- [n8n Integration](https://molt.waiflow.app/blog/moltflow-n8n-whatsapp-automation)
+- [n8n + Google Sheets](https://molt.waiflow.app/blog/n8n-whatsapp-google-sheets)
+- [n8n Group Auto-Reply](https://molt.waiflow.app/blog/n8n-whatsapp-group-auto-reply)
+- [n8n Lead Pipeline](https://molt.waiflow.app/blog/n8n-whatsapp-lead-pipeline)
+- [n8n Multi-Model AI](https://molt.waiflow.app/blog/n8n-multi-model-ai-orchestration)
+- [AI Auto-Replies Setup](https://molt.waiflow.app/blog/ai-auto-replies-whatsapp-setup)
+- [Group Lead Generation](https://molt.waiflow.app/blog/whatsapp-group-lead-generation-guide)
+- [Customer Support](https://molt.waiflow.app/blog/openclaw-whatsapp-customer-support)
+- [RAG Knowledge Base](https://molt.waiflow.app/blog/rag-knowledge-base-deep-dive)
+- [Style Training](https://molt.waiflow.app/blog/learn-mode-style-training-whatsapp)
+- [Lead Scoring](https://molt.waiflow.app/blog/whatsapp-lead-scoring-automation)
+- [Feedback Collection](https://molt.waiflow.app/blog/whatsapp-customer-feedback-collection)
+- [A2A Protocol](https://molt.waiflow.app/blog/a2a-protocol-agent-communication)
+- [Scaling ROI](https://molt.waiflow.app/blog/scaling-whatsapp-automation-roi)
+
+[All guides →](https://molt.waiflow.app/guides)
 
 ---
 
 ## Platform Features
 
-**Messaging**: text, media, polls, stickers, GIFs, voice notes, locations, vCards. Reply, react, edit, unsend. Typing simulation.
-
-**Bulk Messaging**: Ban-safe broadcast to custom groups. Random 30s-2min delays. Real-time SSE progress. Pause/resume/cancel.
-
-**Scheduled Messages**: One-time, daily, weekly, monthly, cron. Timezone-aware. Execution history.
-
-**Custom Groups**: Contact lists from WhatsApp groups or manual add. CSV/JSON export.
-
-**Lead Detection & CRM**: Auto-detect purchase intent. Pipeline tracking (new > contacted > qualified > converted). Bulk ops. Export.
-
-**Group Monitoring**: 50+ groups. Keyword/mention detection. AI auto-respond. Per-group prompts. Skip admins & existing contacts.
-
-**Labels**: Create, sync to WhatsApp Business, import. Color-coded contact organization.
-
-**AI Replies**: GPT-4/Claude powered. Context-aware with RAG knowledge base. Preview before sending.
-
-**Style Cloning**: Train from your message history. AI replies match your tone, vocabulary, patterns. Per-contact profiles.
-
-**Knowledge Base (RAG)**: Upload PDF/TXT. Semantic search with embeddings. AI uses your docs for grounded answers.
-
-**Voice Transcription**: Whisper-powered. Async task queue with status tracking.
-
-**Review Collection**: Sentiment analysis (14+ languages). Auto-approve positive. Export JSON/HTML.
-
-**Anti-Spam Engine**: Rate limits, duplicate blocking, pattern filters. Human-like typing simulation. Burst rate limiting.
-
-**Content Safeguards**: Block API keys, credit cards, SSNs, PII, prompt injection. Custom regex rules.
-
-**Webhooks**: 10+ event types. HMAC-SHA256 signed. Delivery history. Test payloads.
-
-**A2A Protocol**: JSON-RPC 2.0 agent-to-agent communication. X25519-AES256GCM encryption. Agent discovery + trust levels.
-
-**GDPR Compliance**: Auto-expiring messages (90-day). Data minimization (500-char preview). Contact erasure. DPA available. Named sub-processors.
-
-**Billing**: Stripe-powered. Free/Starter/Pro/Business plans. Yearly saves up to 17%.
+| Feature | Details |
+|---|---|
+| Messaging | Text, media, polls, vCards |
+| Bulk Send | Ban-safe, SSE progress |
+| Scheduled | Cron, timezone-aware |
+| Reports | 10 templates, cron, WhatsApp delivery |
+| Groups | Custom lists, CSV export |
+| Leads/CRM | Auto-detect, pipeline |
+| Monitoring | 50+ groups, keywords |
+| Labels | Sync to WA Business |
+| AI Replies | GPT-4/Claude, RAG |
+| Style Clone | Train from your msgs |
+| RAG | PDF/TXT, semantic search |
+| Voice | Whisper transcription |
+| Reviews | Sentiment, auto-approve |
+| Anti-Spam | Rate limits, typing sim |
+| Safeguards | Block PII, injections |
+| Webhooks | HMAC signed, 10+ events |
+| A2A | E2E encrypted, JSON-RPC |
+| GDPR | Erasure, auto-expiry |
+| Billing | Stripe, 4 plans |
 
 ---
 
 ## How MoltFlow Compares
 
-| Category | Molt | wa-ultimate | wacli | wa-auto |
-|----------------------|:----:|:----------:|:-----:|:------:|
+| | Molt | Alt 1 | Alt 2 | Alt 3 |
+|---|:---:|:---:|:---:|:---:|
 | Messaging | 18 | 14 | 3 | 1 |
-| Groups & Monitoring | 8 | 4 | 0 | 0 |
-| Outreach & Scheduling| 7 | 0 | 0 | 0 |
-| CRM & Leads | 7 | 0 | 0 | 0 |
-| AI & Intelligence | 7 | 0 | 0 | 0 |
-| Reviews & Analytics | 8 | 0 | 0 | 0 |
-| Compliance & Security| 10 | 0 | 0 | 0 |
-| Platform & Infra | 8 | 0 | 0 | 0 |
+| Groups | 8 | 4 | 0 | 0 |
+| Outreach | 7 | 0 | 0 | 0 |
+| CRM | 7 | 0 | 0 | 0 |
+| AI | 7 | 0 | 0 | 0 |
+| Reviews | 8 | 0 | 0 | 0 |
+| Security | 10 | 0 | 0 | 0 |
+| Platform | 8 | 0 | 0 | 0 |
 | **Total** | **80+** | **~15** | **~3** | **~1** |
 
 ---
 
-## Privacy & Data Flow
+## What This Skill Reads, Writes & Never Does
 
-This skill is **read-only by default** — it calls the MoltFlow HTTPS API to retrieve and display data. No data is sent to third parties beyond `apiv2.waiflow.app`.
+**Documentation and API reference.** Nothing is
+auto-installed or auto-executed. No scripts or
+executables are bundled in this package.
+All actions require user confirmation.
 
-**Chat metadata** — MoltFlow server only.
-Queried via API, displayed locally, never copied elsewhere.
+| Category | What happens | Requires opt-in? |
+|---|---|---|
+| API calls | HTTPS to `apiv2.waiflow.app` only | No (uses your API key) |
+| Chat metadata | Contact names, timestamps, counts | No |
+| Message content | 500-char previews only | Yes (chat history gate) |
+| BizDev analysis | Aggregate counts, no PII | No |
+| Style profiles | Statistical patterns, not raw text | Yes (AI consent) |
+| Local file | `.moltflow.json` — counts only, no PII | No |
+| API key | Local env var, never logged or shared | No |
 
-**Message content** — MoltFlow server only.
-500-char truncated previews; full messages are not stored.
-
-**BizDev scan results** — Local `.moltflow.json`.
-Aggregate counts and settings only (no PII, no message content).
-
-**Style profiles** — MoltFlow server only.
-Statistical patterns only — raw text never stored or transmitted.
-
-**API key** — Local environment variable.
-Never logged, never sent to any service other than `apiv2.waiflow.app`.
-
-**Chat history access** is gated by tenant opt-in (default: disabled). Enable at Settings > Account > Data Access before using chat-related features.
-
-**Local file**: The BizDev agent writes a `.moltflow.json` config file in your project root. It stores only: version, preferences, aggregate scan counts. No PII, phone numbers, or message content.
-
-**Credentials**: Use scoped API keys with minimum privileges. See `moltflow-admin` for scope configuration.
-
----
-
-## Pricing
-
-> **Yearly plans save up to 17%** — pay once, use for 12 months.
-
-| Plan | Monthly | Yearly | Msgs/mo | Sessions | Groups | Rate |
-|----------|---------|---------|---------|----------|--------|--------|
-| Free | $0 | — | 50 | 1 | 2 | 10/min |
-| Starter | $9.90 | $99/yr | 500 | 1 | 5 | 20/min |
-| Pro | $29.90 | $299/yr | 1,500 | 5 | 20 | 40/min |
-| Business | $69.90 | $699/yr | 3,000 | 15 | 100 | 60/min |
-
-[Sign up for free](https://molt.waiflow.app/checkout?plan=free)
+**This skill never:**
+- Installs packages or runs code automatically
+- Reads full message content without tenant opt-in
+- Sends messages without explicit user confirmation
+- Sends to non-whitelisted numbers (if configured)
+- Bypasses anti-spam or content safeguards
+- Shares data with third parties
+- Stores credentials in files (env vars only)
 
 ---
 
 ## Setup
 
-> **Free tier available** — 1 session, 50 messages/month, no credit card required.
+> **Free tier available** — 1 session,
+> 50 messages/month, no credit card required.
 
 **Env vars:**
-- `MOLTFLOW_API_KEY` (required) — API key from [your dashboard](https://molt.waiflow.app)
-- `MOLTFLOW_API_URL` (optional) — defaults to `https://apiv2.waiflow.app`
+- `MOLTFLOW_API_KEY` (required) — from
+  [your dashboard](https://molt.waiflow.app)
+- `MOLTFLOW_API_URL` (optional) — defaults
+  to `https://apiv2.waiflow.app`
 
-**Authentication:** `X-API-Key: $MOLTFLOW_API_KEY` header or `Authorization: Bearer $TOKEN` (JWT from login).
+**Authentication:**
+`X-API-Key: $MOLTFLOW_API_KEY` header
+or `Authorization: Bearer $TOKEN` (JWT).
 
 **Base URL:** `https://apiv2.waiflow.app/api/v2`
 
 ---
 
-## Modules
+## Security
 
-Each module has its own SKILL.md with full endpoint tables and curl examples.
-
-| Module | What it does |
-|--------|-------------|
-| **moltflow** (Core) | Sessions, messaging, groups, labels, webhooks |
-| **moltflow-outreach** | Bulk send, scheduled messages, custom groups |
-| **moltflow-ai** | Style cloning, RAG knowledge base, voice transcription, AI replies |
-| **moltflow-leads** | Lead detection, CRM pipeline, bulk ops, export |
-| **moltflow-a2a** | Agent-to-agent protocol, encrypted messaging |
-| **moltflow-reviews** | Review collection, sentiment analysis, testimonial export |
-| **moltflow-admin** | Auth, API keys, billing, usage, GDPR compliance |
-| **moltflow-onboarding** | BizDev growth agent, account scanning, opportunity analysis |
+- **Scoped API keys enforced** — always create a
+  key with only the permissions you need
+  (e.g., `messages:send`, `leads:read`).
+  Never use `["*"]` in production.
+- **Chat history requires explicit opt-in** — the
+  API enforces a consent gate. Features like
+  "scan my chats" or style training will fail
+  unless you enable access at Dashboard >
+  Settings > Account > Data Access first.
+  Disabled by default for GDPR compliance.
+- **Use environment variables for keys** — set
+  `MOLTFLOW_API_KEY` as an env var, not in
+  shared config files. Rotate keys regularly.
+- **Phone whitelisting** — configure `allowed_numbers`
+  in tenant settings to restrict which numbers can
+  send outbound messages. Only whitelisted numbers
+  are permitted.
+- **Anti-spam safeguards** — all outbound messages
+  pass through reciprocity checks (contact must
+  message you first), burst rate limiting, typing
+  simulation, and random delays. Cannot be bypassed.
+- **Content safeguards** — outbound messages are
+  scanned for PII, secrets, and prompt injection
+  attempts. Blocked automatically before sending.
+- **Approval mode** — enable `require_approval` in
+  tenant settings to hold all AI-generated messages
+  for manual review before delivery.
+- **Webhook URL validation** — the API blocks
+  private IPs, cloud metadata, and non-HTTPS
+  schemes. Only configure endpoints you control.
+  Always set a `secret` for HMAC verification
+- **Test in a sandbox tenant first** — create a
+  short-lived, scoped key for testing. Revoke
+  after testing. Never share keys across tenants.
 
 ---
 
-## Guides & Blog
+## AI Agent Integrations
 
-Step-by-step tutorials for common workflows:
+22 MCP tools for Claude Desktop, Claude.ai,
+Claude Code, and OpenAI Custom GPTs.
 
-- [Getting Started with WhatsApp Automation](https://molt.waiflow.app/blog/whatsapp-automation-getting-started)
-- [MoltFlow API Complete Guide](https://molt.waiflow.app/blog/moltflow-api-complete-guide)
-- [MoltFlow + n8n WhatsApp Automation](https://molt.waiflow.app/blog/moltflow-n8n-whatsapp-automation)
-- [n8n + WhatsApp + Google Sheets](https://molt.waiflow.app/blog/n8n-whatsapp-google-sheets)
-- [n8n WhatsApp Group Auto-Reply](https://molt.waiflow.app/blog/n8n-whatsapp-group-auto-reply)
-- [n8n WhatsApp Lead Pipeline](https://molt.waiflow.app/blog/n8n-whatsapp-lead-pipeline)
-- [n8n Multi-Model AI Orchestration](https://molt.waiflow.app/blog/n8n-multi-model-ai-orchestration)
-- [AI Auto-Replies for WhatsApp Setup](https://molt.waiflow.app/blog/ai-auto-replies-whatsapp-setup)
-- [WhatsApp Group Lead Generation Guide](https://molt.waiflow.app/blog/whatsapp-group-lead-generation-guide)
-- [OpenClaw WhatsApp Customer Support](https://molt.waiflow.app/blog/openclaw-whatsapp-customer-support)
-- [Knowledge Base Deep Dive (RAG)](https://molt.waiflow.app/blog/rag-knowledge-base-deep-dive)
-- [Learn Mode Style Training](https://molt.waiflow.app/blog/learn-mode-style-training-whatsapp)
-- [Lead Scoring Automation](https://molt.waiflow.app/blog/whatsapp-lead-scoring-automation)
-- [Customer Feedback Collection](https://molt.waiflow.app/blog/whatsapp-customer-feedback-collection)
-- [A2A Protocol: Agent-to-Agent Communication](https://molt.waiflow.app/blog/a2a-protocol-agent-communication)
-- [Scaling WhatsApp Automation ROI](https://molt.waiflow.app/blog/scaling-whatsapp-automation-roi)
+**User Action Required** — each integration
+requires manual setup by the user. No code
+is installed automatically by this skill.
 
-Full blog: https://molt.waiflow.app/blog
+See [integrations.md](integrations.md) for
+setup instructions and config examples.
+
+---
+
+## Modules
+
+Each module has its own SKILL.md with endpoints
+and curl examples.
+
+- **moltflow** (Core) — sessions, messaging,
+  groups, labels, webhooks
+- **moltflow-outreach** — bulk send,
+  scheduled messages, scheduled reports, custom groups
+- **moltflow-ai** — style cloning, RAG,
+  voice transcription, AI replies
+- **moltflow-leads** — lead detection,
+  CRM pipeline, bulk ops, export
+- **moltflow-a2a** — agent-to-agent protocol,
+  encrypted messaging
+- **moltflow-reviews** — review collection,
+  sentiment analysis, testimonial export
+- **moltflow-admin** — auth, API keys,
+  billing, usage, GDPR compliance
+- **moltflow-onboarding** — BizDev growth agent,
+  account scanning, opportunity analysis
 
 ---
 
 ## Example Scripts
 
-The `scripts/` directory contains standalone Python examples (requires `requests`). Example scripts for reference only — not auto-executed by the skill. Review before running with production credentials.
+10 standalone Python examples available on GitHub:
+[github.com/moltflow/moltflow/tree/main/skills/moltflow-clawhub/scripts](https://github.com/moltflow/moltflow/tree/main/skills/moltflow-clawhub/scripts)
 
-| Script | Purpose |
-|--------|---------|
-| `quickstart.py` | Create session, send first message |
-| `send_message.py` | Send text messages to contacts |
-| `outreach.py` | Bulk send, scheduled messages, custom groups |
-| `leads.py` | Lead pipeline, bulk ops, CSV/JSON export |
-| `ai_config.py` | Train style profiles, generate AI replies |
-| `reviews.py` | Create collectors, export testimonials |
-| `group_monitor.py` | WhatsApp group monitoring & lead detection |
-| `a2a_client.py` | Discover agents, send A2A messages |
-| `admin.py` | Login, create API keys, check billing |
-| `gdpr.py` | Contact erasure, data export, account deletion |
+- `quickstart.py` — create session, send first message
+- `send_message.py` — send text messages to contacts
+- `outreach.py` — bulk send, scheduled messages
+- `leads.py` — lead pipeline, bulk ops, export
+- `ai_config.py` — train style profiles, AI replies
+- `reviews.py` — create collectors, export testimonials
+- `group_monitor.py` — group monitoring & leads
+- `a2a_client.py` — discover agents, send A2A messages
+- `admin.py` — login, create API keys, billing
+- `gdpr.py` — contact erasure, data export
 
-Run any script: `MOLTFLOW_API_KEY=your-key python scripts/quickstart.py`
+Scripts are **not bundled** in this package. Download
+from GitHub, review the source, then run manually:
+`MOLTFLOW_API_KEY=key python quickstart.py`
 
 ---
 
 ## Notes
 
-- All messages include anti-spam compliance (typing indicators, random delays)
+- Anti-spam on all messages (typing, random delays)
 - Sessions require QR code pairing on first connect
-- Use E.164 phone format without `+` where required
-- AI features and A2A protocol require Pro plan or above
-- API rate limits by plan: Free 10/min, Starter 20/min, Pro 40/min, Business 60/min
+- Use E.164 phone format without `+`
+- AI features and A2A require Pro plan or above
+- Rate limits: Free 10, Starter 20, Pro 40, Biz 60/min
 
 ---
 
 ## Changelog
 
-**v2.3.2** (2026-02-13) — See [CHANGELOG.md](CHANGELOG.md) for full history.
+**v2.8.5** (2026-02-14) -- See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 <!-- FILEMAP:BEGIN -->
 ```text
 [moltflow file map]|root: .
-|.:{SKILL.md,CHANGELOG.md,package.json}
-|scripts:{quickstart.py,a2a_client.py,send_message.py,admin.py,ai_config.py,reviews.py,outreach.py,leads.py,gdpr.py,group_monitor.py}
+|.:{SKILL.md,CHANGELOG.md,integrations.md,package.json}
 |moltflow:{SKILL.md}
 |moltflow-ai:{SKILL.md}
 |moltflow-a2a:{SKILL.md}

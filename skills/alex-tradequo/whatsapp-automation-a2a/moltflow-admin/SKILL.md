@@ -11,7 +11,8 @@ disable-model-invocation: true
 ---
 
 > **MoltFlow** — WhatsApp Business automation for teams. Connect, monitor, and automate WhatsApp at scale.
-> [Save up to 17% with yearly billing](https://molt.waiflow.app/checkout?plan=free) -- Free tier available, no credit card required.
+> ***Due to high demand and a recent registration issue, we're offering our top-tier Business plan with unlimited quotas for just $19.90/month on yearly billing — for a limited time only.*** [**Claim the deal**](https://buy.stripe.com/cNifZibX7gpQebJ0nsfnO00)
+> Free tier available. [Sign up](https://molt.waiflow.app/checkout?plan=free)
 
 # MoltFlow Admin Skill
 
@@ -156,7 +157,7 @@ Admin user management (superadmin only — via `/admin` prefix):
 }
 ```
 
-- `scopes`: Array of permission scopes (default: `["*"]` for full access). See main SKILL.md for the complete scope reference.
+- `scopes`: Array of permission scopes. Always specify the minimum scopes needed (e.g., `["sessions:read", "messages:send"]`). See main SKILL.md for the complete scope reference. Avoid `["*"]` — use only in development.
 - `expires_in_days`: Optional expiry in days (default: no expiry).
 
 **Important:** The `raw_key` is only returned at creation time. It is stored as a SHA-256 hash — it cannot be retrieved later.
@@ -246,7 +247,7 @@ Self-service tenant configuration (owner/admin role required for writes).
 | `ai_consent_enabled` | `bool` | Whether AI features (auto-reply, style training) are enabled |
 | `chat_history_access_enabled` | `bool` | Whether chat history reading is enabled (Phase 52 — default: `false`) |
 
-> **Chat History Gate (Phase 52)**: `chat_history_access_enabled` controls whether API keys with `messages:read` scope can access chat history. Default is `false` — must be explicitly enabled at **Settings > Account > Data Access**. Sending messages is NOT affected by this setting.
+> **[PRIVACY GATE] Chat History Access**: `chat_history_access_enabled` controls whether API keys with `messages:read` scope can access chat history. **Default is `false`** — the API returns HTTP 403 until explicitly enabled at **Settings > Account > Data Access**. Sending messages is NOT affected. Features that read chat content (BizDev agent phases 3A/3C, style training, AI context) will gracefully skip when disabled.
 
 #### Get Tenant Settings
 
@@ -344,6 +345,10 @@ Erase all data for a specific phone number within your tenant. This supports GDP
 
 ## Account Deletion
 
+> **Irreversible operation.** Only perform with full
+> understanding of consequences. Requires password
+> confirmation as a safety gate.
+
 Delete your own account and all associated data. This is the GDPR "right to erasure" for your entire account.
 
 ```bash
@@ -359,7 +364,12 @@ curl -X DELETE https://apiv2.waiflow.app/api/v2/users/me \
 
 ## Admin Endpoints (Superadmin Only)
 
-These endpoints require the `superadmin` role.
+> **High-privilege operations.** These endpoints
+> require the `superadmin` role and should only be
+> used with a dedicated admin account. Never expose
+> superadmin credentials to third-party integrations.
+> Create a scoped, short-lived API key for any
+> automated admin workflows.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|

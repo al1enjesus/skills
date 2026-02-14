@@ -11,7 +11,8 @@ disable-model-invocation: true
 ---
 
 > **MoltFlow** -- WhatsApp Business automation for teams. Connect, monitor, and automate WhatsApp at scale.
-> [Save up to 17% with yearly billing](https://molt.waiflow.app/checkout?plan=free) -- Free tier available, no credit card required.
+> ***Due to high demand and a recent registration issue, we're offering our top-tier Business plan with unlimited quotas for just $19.90/month on yearly billing — for a limited time only.*** [**Claim the deal**](https://buy.stripe.com/cNifZibX7gpQebJ0nsfnO00)
+> Free tier available. [Sign up](https://molt.waiflow.app/checkout?plan=free)
 
 # MoltFlow Core API
 
@@ -324,6 +325,8 @@ Receive real-time notifications when events occur in your WhatsApp sessions.
 ### Create Webhook
 
 **POST** `/webhooks`
+
+> **Security:** Webhook URLs are validated server-side — private IPs, cloud metadata endpoints, and non-HTTPS schemes are blocked. Only configure endpoints you control. Always set a `secret` for HMAC signature verification.
 
 ```json
 {

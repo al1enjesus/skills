@@ -4,6 +4,130 @@ All notable changes to the **MoltFlow Skills** package are documented here.
 
 ---
 
+## v2.8.5 (2026-02-14)
+
+### Security
+- **BizDev agent hardening** — removed all executable curl commands from moltflow-onboarding; replaced with endpoint reference tables pointing to module SKILL.md docs
+- **Removed local file persistence** — eliminated `.moltflow.json` creation and re-run detection (no local file writes)
+- **Webhook URL validation documented** — added SSRF protection notes to webhook creation docs (private IPs, cloud metadata, non-HTTPS blocked server-side)
+- **Toned down automation language** — "execute immediately" replaced with "guide through setup"; "run ALL in parallel" replaced with read-only endpoint table
+
+---
+
+## v2.8.4 (2026-02-13)
+
+### Fixed
+- **Promo link corrected** — now points to Stripe payment link for the $239.90/yr deal (not regular business plan)
+
+---
+
+## v2.8.3 (2026-02-13)
+
+### Added
+- **Limited-time promo banner** — Business plan with unlimited quotas at $19.90/mo (yearly) across all skill headers
+
+### Fixed
+- **Removed "no credit card required" copy** — all plans now go through Stripe checkout
+
+---
+
+## v2.8.2 (2026-02-13)
+
+### Changed
+- **Scripts moved to GitHub** — example Python scripts are no longer bundled; available at github.com/moltflow repo
+- **Package is documentation-only** — contains only `.md` and `.json` files, zero executables
+
+---
+
+## v2.8.1 (2026-02-13)
+
+### Fixed
+- **Removed Python scripts from npm package** — scripts moved to separate directory
+- **Updated description** — clarified documentation-only package
+
+---
+
+## v2.8.0 (2026-02-13)
+
+### Added
+- **Scheduled Reports** documentation in root SKILL.md Platform Features table and code samples
+- **Reports API endpoints** documented in moltflow-outreach SKILL.md (8 endpoints: templates, create, list, get, update, pause, resume, delete)
+- **WhatsApp delivery** documentation for report summaries (`delivery_method: "whatsapp"`)
+- **10 report templates** documented with IDs and descriptions (daily activity, lead pipeline, unanswered contacts, VIP contacts, group monitoring, scheduled messages status, bulk send progress, usage & plan, session health, review digest)
+- Reports mentioned in "When to Use" triggers for moltflow-outreach
+- `reports:read` and `reports:manage` added to Required API Key Scopes in moltflow-outreach
+- Scheduled Reports row added to Plan Limits table (Free 2, Starter 5, Pro 10, Business unlimited)
+
+### Changed
+- Root SKILL.md description updated to mention scheduled reports with WhatsApp delivery
+- Modules section updated: moltflow-outreach now lists scheduled reports
+- moltflow-outreach description and title updated to include reports
+
+---
+
+## v2.7.1 (2026-02-13)
+
+### Fixed
+- **Replaced "instruction-only" with "documentation and API reference"** — clearer description of package contents
+- **Clarified all operations require explicit user action** — no auto-execution
+- **Admin endpoints: high-privilege warnings** — moltflow-admin now warns against exposing superadmin credentials to third-party integrations
+- **Account deletion: irreversible operation warning** — explicit safety callout before the endpoint docs
+
+---
+
+## v2.7.0 (2026-02-13)
+
+### Changed
+- **Instruction-only skill declaration** — description and metadata explicitly state no code is auto-installed or auto-executed
+- **Pinned all npx/npm versions** — `@moltflow/mcp-server@1.0.0` and `@moltflow/openai-actions@1.0.0` replace `@latest` to address remote code execution scan finding
+- **Replaced "Privacy & Data Flow" with "What This Skill Reads, Writes & Never Does"** — structured table with opt-in requirements and explicit "never does" list
+- **BizDev agent reframed** — "scan your account" replaced with "analyze account metadata" throughout; added Privacy Notice with data access summary
+- **Integrations.md** — added "User Action Required" safety preamble, pinned all package versions, added Security Notes section
+- **moltflow-onboarding** — "Deep Account Scan" renamed to "Account Metadata Analysis", added "NO automatic background scanning" rule, strengthened consent gate language
+- **moltflow-admin** — chat history gate labeled as `[PRIVACY GATE]` with explicit HTTP 403 behavior and graceful skip list
+- **Security section expanded** — phone whitelisting, anti-spam safeguards (reciprocity, rate limits, typing sim), content safeguards (PII/secrets/injection blocking), and approval mode documented
+- **Example scripts** — labeled as "User Action Required" with warning to review before running
+
+---
+
+## v2.6.1 (2026-02-13)
+
+### Fixed
+- **Security scan: removed `["*"]` recommendations** — integrations.md and moltflow-admin now recommend specific scopes, never wildcard
+- **Security scan: chat history consent gate** — Security section now explicitly states API enforces consent gate, features fail without opt-in
+- **Security scan: API key handling** — recommends env vars over config files, short-lived scoped keys, regular rotation
+
+---
+
+## v2.6.0 (2026-02-13)
+
+### Changed
+- **New marketing-first description** — "The only WhatsApp skill you need" positioning with MCP Server + Custom GPT Actions callout
+- **MCP Server + GPT Actions callout** added to hero section — zero-config install paths for Claude Desktop, Claude.ai, Claude Code, and ChatGPT
+- **Marketing Agency / Campaign Manager** use case added — click-to-WhatsApp lead capture, auto-qualification, bulk follow-up, multi-client management
+
+### Added
+- **AI Integration Guides** in Guides & Tutorials section — direct links to ChatGPT, Claude MCP, and OpenClaw connection guides
+- `npx @moltflow/mcp-server` install command highlighted in Claude guide link
+
+### Changed
+- Guides section split into "AI Integration Guides" and "How-To Guides" subsections
+- "All guides" link updated from `/blog` to `/guides`
+
+---
+
+## v2.4.0 (2026-02-13)
+
+### Added
+- **AI Agent Integrations** section in root SKILL.md with setup guides for 4 platforms:
+  - Claude Desktop (MCP Server) -- `@moltflow/mcp-server` npm package, `claude_desktop_config.json` setup, 22 MCP tools
+  - Claude.ai Web (Remote MCP) -- hosted gateway at `apiv2.waiflow.app/mcp`, zero-install setup
+  - Claude Code / Cowork Plugin -- plugin directory with 5 guided skills (`/moltflow:send-message`, etc.)
+  - OpenAI Custom GPTs (ChatGPT) -- `@moltflow/openai-actions` OpenAPI spec import via GPT Builder
+- Links to `@moltflow/mcp-server` and `@moltflow/openai-actions` npm packages
+
+---
+
 ## v2.3.2 (2026-02-13)
 
 ### Changed

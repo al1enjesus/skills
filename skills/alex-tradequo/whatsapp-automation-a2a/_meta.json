@@ -1,13 +1,18 @@
 {
   "owner": "alex-tradequo",
   "slug": "whatsapp-automation-a2a",
-  "displayName": "WhatsApp All-in-One — AI Messaging, Leads, Bulk Send & A2A",
+  "displayName": "WhatsApp All-in-One — Mine Groups for Leads, AI Outreach, Bulk Campaigns & MCP",
   "latest": {
-    "version": "2.3.2",
-    "publishedAt": 1770987622562,
-    "commit": "https://github.com/openclaw/skills/commit/6c6d2f443b271d8daf6f5a7aea89af5bbbee6733"
+    "version": "2.8.5",
+    "publishedAt": 1771054263558,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.2",
+      "publishedAt": 1770987622562,
+      "commit": "https://github.com/openclaw/skills/commit/6c6d2f443b271d8daf6f5a7aea89af5bbbee6733"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1770986919076,

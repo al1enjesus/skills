@@ -1,8 +1,8 @@
 ---
 name: moltflow-outreach
-description: "Bulk messaging, scheduled messages, and custom groups for WhatsApp outreach. Use when: bulk send, broadcast, schedule message, cron, custom group, contact list, ban-safe messaging."
+description: "Bulk messaging, scheduled messages, scheduled reports, and custom groups for WhatsApp outreach. Use when: bulk send, broadcast, schedule message, schedule report, cron, custom group, contact list, ban-safe messaging."
 source: "MoltFlow Team"
-version: "2.1.0"
+version: "2.8.0"
 risk: safe
 requiredEnv:
   - MOLTFLOW_API_KEY
@@ -11,16 +11,19 @@ disable-model-invocation: true
 ---
 
 > **MoltFlow** -- WhatsApp Business automation for teams. Connect, monitor, and automate WhatsApp at scale.
-> [Save up to 17% with yearly billing](https://molt.waiflow.app/checkout?plan=free) -- Free tier available, no credit card required.
+> ***Due to high demand and a recent registration issue, we're offering our top-tier Business plan with unlimited quotas for just $19.90/month on yearly billing — for a limited time only.*** [**Claim the deal**](https://buy.stripe.com/cNifZibX7gpQebJ0nsfnO00)
+> Free tier available. [Sign up](https://molt.waiflow.app/checkout?plan=free)
 
-# MoltFlow Outreach -- Bulk Send, Scheduled Messages & Custom Groups
+# MoltFlow Outreach -- Bulk Send, Scheduled Messages, Reports & Custom Groups
 
-Broadcast to custom contact lists with ban-safe throttling, schedule recurring messages with timezone support, and manage targeted contact groups for WhatsApp outreach.
+Broadcast to custom contact lists with ban-safe throttling, schedule recurring messages with timezone support, generate automated reports with WhatsApp delivery, and manage targeted contact groups for WhatsApp outreach.
 
 ## When to Use
 
 - "Send bulk message" or "broadcast to group"
 - "Schedule a WhatsApp message" or "set up recurring message"
+- "Generate a report" or "schedule a report"
+- "Send me a usage summary" or "get a lead pipeline report"
 - "Create a contact list" or "build custom group"
 - "Pause bulk send" or "cancel scheduled message"
 - "Export group members as CSV" or "import contacts"
@@ -39,6 +42,7 @@ Broadcast to custom contact lists with ban-safe throttling, schedule recurring m
 | `custom-groups` | `read/manage` |
 | `bulk-send` | `read/manage` |
 | `scheduled` | `read/manage` |
+| `reports` | `read/manage` |
 
 ## Authentication
 
@@ -313,6 +317,123 @@ Schedule one-time or recurring WhatsApp messages to custom groups with timezone 
 
 ---
 
+## Scheduled Reports
+
+Generate automated summaries of your MoltFlow activity on a schedule. Choose from 10 prebuilt templates covering leads, messaging, sessions, and more. Reports can be viewed in the dashboard or delivered directly to your WhatsApp.
+
+Set `delivery_method` to `"whatsapp"` to receive report summaries directly in your connected WhatsApp session. The report is formatted as plain text and sent to the session owner's own chat.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/reports/templates` | List available report templates |
+| POST | `/reports` | Create a new scheduled report |
+| GET | `/reports` | List your reports |
+| GET | `/reports/{id}` | Get report with execution history |
+| PATCH | `/reports/{id}` | Update schedule or settings |
+| POST | `/reports/{id}/pause` | Pause a scheduled report |
+| POST | `/reports/{id}/resume` | Resume a paused report |
+| DELETE | `/reports/{id}` | Delete a report |
+
+### List Report Templates
+
+**GET** `/reports/templates`
+
+Returns all 10 available report templates with descriptions and supported parameters.
+
+```bash
+curl -H "X-API-Key: $MOLTFLOW_API_KEY" \
+  https://apiv2.waiflow.app/api/v2/reports/templates
+```
+
+**Response** `200 OK`:
+
+```json
+[
+  {
+    "id": "daily_activity",
+    "name": "Daily Activity Summary",
+    "description": "Messages sent/received, leads detected, session uptime"
+  },
+  {
+    "id": "lead_pipeline",
+    "name": "Lead Pipeline Report",
+    "description": "Lead sources, funnel stages, conversion rates"
+  }
+]
+```
+
+### Create a Scheduled Report
+
+**POST** `/reports`
+
+```bash
+curl -X POST -H "X-API-Key: $MOLTFLOW_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Weekly Lead Pipeline",
+    "template_id": "lead_pipeline",
+    "schedule_type": "weekly",
+    "cron_expression": "0 9 * * MON",
+    "timezone": "America/New_York",
+    "delivery_method": "whatsapp"
+  }' \
+  https://apiv2.waiflow.app/api/v2/reports
+```
+
+**Response** `201 Created`:
+
+```json
+{
+  "id": "report-uuid-...",
+  "name": "Weekly Lead Pipeline",
+  "template_id": "lead_pipeline",
+  "schedule_type": "weekly",
+  "cron_expression": "0 9 * * MON",
+  "timezone": "America/New_York",
+  "delivery_method": "whatsapp",
+  "status": "active",
+  "next_run_at": "2026-02-17T09:00:00-05:00",
+  "created_at": "2026-02-13T10:00:00Z"
+}
+```
+
+### Required Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Report name (1-255 chars) |
+| `template_id` | string | Yes | Template ID from `/reports/templates` |
+| `schedule_type` | string | Yes | One of: `one_time`, `daily`, `weekly`, `monthly`, `cron` |
+| `cron_expression` | string | Conditional | Cron string. Required for recurring types |
+| `timezone` | string | No | IANA timezone (default: `UTC`) |
+| `delivery_method` | string | No | `dashboard` (default) or `whatsapp` |
+
+### Report Templates
+
+| Template ID | Name | Description |
+|-------------|------|-------------|
+| `daily_activity` | Daily Activity Summary | Messages, leads, sessions |
+| `lead_pipeline` | Lead Pipeline Report | Sources, funnel, conversions |
+| `unanswered_contacts` | Unanswered Contacts | Warm leads going cold |
+| `vip_contacts` | VIP Contacts | Most active conversations |
+| `group_monitoring` | Group Monitoring Digest | Keyword matches, leads |
+| `scheduled_messages_status` | Scheduled Messages Status | Executed vs failed |
+| `bulk_send_progress` | Bulk Send Progress | Active, completed, stats |
+| `usage_plan` | Usage & Plan Utilization | Limits, suggestions |
+| `session_health` | Session Health Check | Uptime, connection issues |
+| `review_digest` | Review & Testimonial Digest | Sentiment, approvals |
+
+### Delivery Methods
+
+- **`dashboard`** (default) -- Report is generated and viewable in the MoltFlow Reports page with formatted tables and stats.
+- **`whatsapp`** -- Report summary is formatted as plain text and sent to your connected WhatsApp session. The message is delivered to the session owner's own chat so you see it directly in WhatsApp.
+
+### Report Status Values
+
+`active` -> `paused` / `cancelled` / `completed`
+
+---
+
 ## Examples
 
 ### Full workflow: Group -> Bulk Send -> Schedule
@@ -384,6 +505,7 @@ curl https://apiv2.waiflow.app/api/v2/custom-groups/{group_id}/export/csv \
 | Custom Groups | 2 | 5 | 20 | 100 |
 | Bulk Send | -- | Yes | Yes | Yes |
 | Scheduled Messages | -- | Yes | Yes | Yes |
+| Scheduled Reports | 2 | 5 | 10 | Unlimited |
 | Messages/month | 50 | 500 | 1,500 | 3,000 |
 
 ---
