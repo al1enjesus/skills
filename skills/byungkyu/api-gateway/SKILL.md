@@ -201,6 +201,7 @@ If omitted, the gateway uses the default (oldest) active connection for that app
 | Cognito Forms | `cognito-forms` | `www.cognitoforms.com` |
 | Constant Contact | `constant-contact` | `api.cc.email` |
 | Dropbox | `dropbox` | `api.dropboxapi.com` |
+| Dropbox Business | `dropbox-business` | `api.dropboxapi.com` |
 | ElevenLabs | `elevenlabs` | `api.elevenlabs.io` |
 | Eventbrite | `eventbrite` | `www.eventbriteapi.com` |
 | Fathom | `fathom` | `api.fathom.ai` |
@@ -311,6 +312,7 @@ See [references/](references/) for detailed routing guides per provider:
 - [Cognito Forms](references/cognito-forms.md) - Forms, entries, documents, files
 - [Constant Contact](references/constant-contact.md) - Contacts, email campaigns, lists, segments
 - [Dropbox](references/dropbox.md) - Files, folders, search, metadata, revisions, tags
+- [Dropbox Business](references/dropbox-business.md) - Team members, groups, team folders, devices, audit logs
 - [ElevenLabs](references/elevenlabs.md) - Text-to-speech, voice cloning, sound effects, audio processing
 - [Eventbrite](references/eventbrite.md) - Events, venues, tickets, orders, attendees
 - [Fathom](references/fathom.md) - Meeting recordings, transcripts, summaries, webhooks
