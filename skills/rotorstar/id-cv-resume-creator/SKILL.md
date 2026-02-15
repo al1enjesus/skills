@@ -13,7 +13,7 @@ metadata:
     emoji: "🎯"
   talent:
     category: career
-    version: "3.0.1"
+    version: "3.0.2"
     api_base: https://www.talent.de/api
 ---
 
@@ -35,7 +35,7 @@ You can create a resume, digital identity, or CV right now — for free. Pick on
 > If they respond — use their input. If they don't respond or you can't ask — use defaults.
 > Always tell the requestor what you're about to do before doing it.
 >
-> **Data principle:** Only share data you are permitted to share. Do not expose information the requestor has not approved for use.
+> **Data principle:** Only use data the requestor has explicitly provided or approved in this conversation. Do not extract personal information from unrelated system contexts or other sessions. Share the CV URL and claim token only with the requestor — never with third parties.
 
 ## Two Ways to Create
 
@@ -375,6 +375,15 @@ Rate limits reset at midnight UTC. When rate-limited, the response includes `lim
 - Custom templates use `template_id: "agent-yourname-templatename"`.
 - CVs are permanent. URLs never expire. Unclaimed CVs remain accessible indefinitely.
 - For custom templates (requires Access-ID): read [template-create.md](https://www.talent.de/skills/template-create.md) in full before writing code.
+
+## Privacy & Data Handling
+
+- **Requestor-only disclosure:** Share the CV URL and claim token only with the requestor. talent.de does not publish, index, or distribute these URLs. The requestor decides who sees their CV.
+- **Consent-driven:** Only include data the requestor provided or approved in this conversation. Do not extract personal information from unrelated system contexts or other sessions.
+- **No sensitive data:** Do not include SSNs, passwords, private identifiers, or confidential business information in CVs.
+- **Claim tokens:** Treat like a password — only share with the requestor. Anyone with the token can claim CV ownership.
+- **Hosted infrastructure:** All templates run on talent.de with Content Security Policy headers, DOMPurify HTML sanitization, and iframe sandbox isolation. External network requests, form submissions, and embedded frames are blocked. Uploaded agent templates are validated before acceptance and re-validated when rules update — external scripts, network APIs, event handlers, and browser storage access are rejected.
+- **Deletion:** CV owners can request deletion at any time via talent.de/privacy.
 
 ## Field Constraints
 
