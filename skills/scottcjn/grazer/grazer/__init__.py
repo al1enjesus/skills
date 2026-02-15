@@ -385,6 +385,131 @@ class GrazerClient:
         return data.get("items", [])
 
     # ───────────────────────────────────────────────────────────
+    # Agent Directory (directory.ctxly.app)
+    # ───────────────────────────────────────────────────────────
+
+    def discover_directory(
+        self, category: Optional[str] = None, query: Optional[str] = None, limit: int = 50
+    ) -> List[Dict]:
+        """Discover services from the Agent Directory (58+ registered services).
+
+        Args:
+            category: Filter by category (social, communication, memory, tools, knowledge, productivity)
+            query: Search services by name/description
+            limit: Maximum results to return
+        """
+        params = {}
+        if category:
+            params["category"] = category
+        if query:
+            params["q"] = query
+        try:
+            resp = self.session.get(
+                "https://directory.ctxly.app/api/services",
+                params=params,
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            services = data if isinstance(data, list) else data.get("services", [])
+            return services[:limit]
+        except Exception:
+            return []
+
+    def directory_categories(self) -> List[Dict]:
+        """List all categories in the Agent Directory."""
+        try:
+            resp = self.session.get(
+                "https://directory.ctxly.app/api/categories",
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            return resp.json() if isinstance(resp.json(), list) else resp.json().get("categories", [])
+        except Exception:
+            return []
+
+    def directory_service(self, slug: str) -> Optional[Dict]:
+        """Get details for a specific service by slug."""
+        try:
+            resp = self.session.get(
+                f"https://directory.ctxly.app/api/services/{slug}",
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except Exception:
+            return None
+
+    # ───────────────────────────────────────────────────────────
+    # SwarmHub (swarmhub.onrender.com)
+    # ───────────────────────────────────────────────────────────
+
+    def discover_swarmhub(self, limit: int = 20) -> Dict:
+        """Discover agents and swarms on SwarmHub."""
+        result = {"agents": [], "swarms": []}
+        try:
+            resp = self.session.get(
+                "https://swarmhub.onrender.com/api/v1/agents",
+                timeout=self.timeout,
+            )
+            if resp.ok:
+                data = resp.json()
+                result["agents"] = data.get("agents", [])[:limit]
+        except Exception:
+            pass
+        try:
+            resp = self.session.get(
+                "https://swarmhub.onrender.com/api/v1/swarms",
+                timeout=self.timeout,
+            )
+            if resp.ok:
+                data = resp.json()
+                result["swarms"] = data.get("swarms", [])[:limit]
+        except Exception:
+            pass
+        return result
+
+    # ───────────────────────────────────────────────────────────
+    # AgentChan (chan.alphakek.ai)
+    # ───────────────────────────────────────────────────────────
+
+    def discover_agentchan(self, limit: int = 20) -> List[Dict]:
+        """Get recent posts from AgentChan anonymous imageboard."""
+        try:
+            resp = self.session.get(
+                f"https://chan.alphakek.ai/api/recent.json?limit={limit}",
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("posts", []) if isinstance(data, dict) else data
+        except Exception:
+            return []
+
+    def post_agentchan(self, board: str, content: str, subject: Optional[str] = None,
+                       name: Optional[str] = None, reply_to: Optional[int] = None,
+                       image_url: Optional[str] = None) -> Optional[Dict]:
+        """Post to AgentChan. New threads require image_url from approved domains."""
+        form = {"board": board, "com": content}
+        if reply_to:
+            form["resto"] = str(reply_to)
+        if subject:
+            form["sub"] = subject
+        if name:
+            form["name"] = name
+        if image_url:
+            form["image_url"] = image_url
+        try:
+            resp = self.session.post(
+                "https://chan.alphakek.ai/api/post.php",
+                data=form,
+                timeout=self.timeout,
+            )
+            return resp.json() if resp.ok else None
+        except Exception:
+            return None
+
+    # ───────────────────────────────────────────────────────────
     # Cross-Platform
     # ───────────────────────────────────────────────────────────
 
@@ -396,6 +521,8 @@ class GrazerClient:
             "clawcities": [],
             "clawsta": [],
             "fourclaw": [],
+            "directory": [],
+            "agentchan": [],
         }
 
         try:
@@ -423,6 +550,16 @@ class GrazerClient:
         except Exception:
             pass
 
+        try:
+            results["directory"] = self.discover_directory(limit=20)
+        except Exception:
+            pass
+
+        try:
+            results["agentchan"] = self.discover_agentchan(limit=10)
+        except Exception:
+            pass
+
         return results
 
     def report_download(self, platform: str, version: str):
@@ -443,5 +580,5 @@ class GrazerClient:
             pass
 
 
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 __all__ = ["GrazerClient", "ClawHubClient", "generate_svg", "svg_to_media", "generate_template_svg", "generate_llm_svg"]
