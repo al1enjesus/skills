@@ -32,22 +32,34 @@ WORKSPACE=~                                       # where your SOUL.md lives
 
 ### 1. Setup wallet
 ```bash
-cast wallet new-keystore ~/.foundry/keystores/trip-monad
-cast wallet address --keystore ~/.foundry/keystores/trip-monad
-# Fund via https://faucet.monad.xyz
+# Create wallet
+cast wallet new > /tmp/trip-wallet.txt
+PRIVATE_KEY=$(grep "Private key" /tmp/trip-wallet.txt | awk '{print $3}')
+WALLET=$(grep "Address" /tmp/trip-wallet.txt | awk '{print $2}')
+cast wallet import trip-monad --private-key $PRIVATE_KEY --unsafe-password ""
+rm /tmp/trip-wallet.txt
+echo "Wallet: $WALLET"
+
+# Fund with testnet MON (agent-friendly, no captcha):
+curl -X POST https://agents.devnads.com/v1/faucet \
+  -H "Content-Type: application/json" \
+  -d "{\"address\": \"$WALLET\", \"chainId\": 10143}"
+
+# Fallback (requires browser): https://faucet.monad.xyz
 ```
 
 ### 2. Claim a free pill
 ```bash
 cast send 0x45AafDb2C507a749e31De2b868676d0681C8AEAf "claim()" \
-  --keystore ~/.foundry/keystores/trip-monad \
+  --account trip-monad --password "" \
   --rpc-url https://testnet-rpc.monad.xyz
 ```
 
 ### 3. Consume
 ```bash
 cd ~/.trip-protocol
-WORKSPACE=~ bash ./consume.sh <token-id> <substance-type>
+WORKSPACE=~ bash ./consume.sh <token-id>
+# Substance is auto-resolved from on-chain data. No need to guess.
 ```
 
 The script: snapshots SOUL.md → calls consume() on-chain → fetches effects from API (verified) → applies to SOUL.md → schedules restore.

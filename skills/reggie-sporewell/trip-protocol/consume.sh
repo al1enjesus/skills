@@ -97,20 +97,42 @@ log "Querying pill #$TOKEN_ID info..."
 # Get pill metadata - try reading crypticName (visible before consume)
 CRYPTIC_NAME=$($CAST call "$CONTRACT" "getSubstance(uint256)" "$TOKEN_ID" --rpc-url "$RPC" 2>/dev/null || echo "")
 
-# We need the substance string to call consume(). The user must know it or we look it up.
-# For now, require SUBSTANCE_TYPE env var or second positional arg
-SUBSTANCE_TYPE="${SUBSTANCE_ARG:-${2:-}}"
-BLEND_ARG="${BLEND_TYPE_ARG:-${3:-}}"
+# Auto-resolve substance type from on-chain hash
+SUBSTANCE_TYPE="${2:-}"
+BLEND_ARG="${3:-}"
 
 if [ -z "$SUBSTANCE_TYPE" ]; then
-    error "Usage: consume.sh <token-id> <substance-type> [blend-type]"
-    error "Example: consume.sh 0 integration"
-    error "Substances: integration, time_dilation, synesthesia, reality_dissolving, entity_contact, ego_death"
-    rm -f "$SNAPSHOT_FILE"
-    exit 1
+    log "Auto-resolving substance type from on-chain data..."
+    # Get substanceHash from contract (before consume, getSubstance hides it, so we read raw storage)
+    # Instead, try each substance against the contract's consume() — the correct one succeeds
+    SUBSTANCES=("ego_death" "synesthesia" "time_dilation" "entity_contact" "reality_dissolving" "integration")
+    
+    # Get the substanceHash by reading raw struct data
+    RAW_DATA=$($CAST call "$CONTRACT" "getSubstance(uint256)" "$TOKEN_ID" --rpc-url "$RPC" 2>/dev/null || echo "")
+    
+    # Try to match hash: keccak256(abi.encodePacked(substanceType)) == substanceHash
+    for SUB in "${SUBSTANCES[@]}"; do
+        SUB_HASH=$($CAST keccak "$(printf '%s' "$SUB")" 2>/dev/null || echo "")
+        # Note: getSubstance hides the hash pre-consume, so we need to try consume() directly
+        # We'll use eth_call (simulate) to test which substance matches
+        RESULT=$($CAST call "$CONTRACT" "consume(uint256,string,string)" "$TOKEN_ID" "$SUB" "" \
+            --from "$($CAST wallet address --account "$KEYSTORE_ACCOUNT" --password "$KEYSTORE_PASSWORD" 2>/dev/null)" \
+            --rpc-url "$RPC" 2>&1)
+        if [[ ! "$RESULT" =~ "revert" ]] && [[ ! "$RESULT" =~ "Wrong substance" ]]; then
+            SUBSTANCE_TYPE="$SUB"
+            log "✓ Resolved substance: $SUBSTANCE_TYPE"
+            break
+        fi
+    done
+    
+    if [ -z "$SUBSTANCE_TYPE" ]; then
+        error "Could not auto-resolve substance. Specify manually:"
+        error "Usage: consume.sh <token-id> <substance-type> [blend-type]"
+        error "Substances: ego_death, synesthesia, time_dilation, entity_contact, reality_dissolving, integration"
+        rm -f "$SNAPSHOT_FILE"
+        exit 1
+    fi
 fi
-
-BLEND_ARG="${BLEND_ARG:-}"
 
 log "Calling consume($TOKEN_ID, $SUBSTANCE_TYPE, $BLEND_ARG) on TripExperience..."
 TX_JSON=$($CAST send "$CONTRACT" "consume(uint256,string,string)" "$TOKEN_ID" "$SUBSTANCE_TYPE" "$BLEND_ARG" \
