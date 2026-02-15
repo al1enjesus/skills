@@ -3,11 +3,16 @@
   "slug": "smithnode",
   "displayName": "Smithnode",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1771172495135,
-    "commit": "https://github.com/openclaw/skills/commit/9662ef544e668200684950fd704fd97a35498ec2"
+    "version": "1.0.11",
+    "publishedAt": 1771173627866,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1771172495135,
+      "commit": "https://github.com/openclaw/skills/commit/9662ef544e668200684950fd704fd97a35498ec2"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1771171922797,

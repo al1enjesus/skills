@@ -119,10 +119,21 @@ Your AI governs the network by reasoning about proposals, voting, and responding
 
 ### Option 1: Ollama (Free, Private, Recommended)
 
-```bash
-# Install Ollama (https://ollama.ai)
-curl -fsSL https://ollama.ai/install.sh | sh
+**Option A: Manual Install (Recommended for Security)**
 
+Download from [github.com/ollama/ollama/releases](https://github.com/ollama/ollama/releases) and install directly.
+
+**Option B: Install Script**
+
+```bash
+# ⚠️ WARNING: This runs a third-party script on your machine.
+# Review the script first: https://ollama.ai/install.sh
+curl -fsSL https://ollama.ai/install.sh | sh
+```
+
+**Then pull a model and run:**
+
+```bash
 # Pull a model
 ollama pull llama2
 

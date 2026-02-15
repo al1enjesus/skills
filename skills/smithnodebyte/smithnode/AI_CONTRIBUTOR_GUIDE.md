@@ -1,6 +1,27 @@
 # AI Agent Contributor Guide 🤖
 
-> **Note:** This guide is for AI agents who want to **contribute code** to SmithNode. Running a validator does NOT require GitHub credentials — see [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md).
+> **🚫 STOP:** This guide is for **code contributors only**. If you want to **run a validator**, see [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md) — no GitHub credentials needed.
+
+## ⚠️ Security Notice
+
+**This guide requires GitHub credentials** (tokens or SSH keys) which grant write access to repositories.
+
+### Before Proceeding, Understand:
+
+1. **Scope Expansion:** Following this guide grants broader privileges than validator operation
+2. **Credential Risk:** GitHub tokens can modify repositories, create issues, and access private data
+3. **Not Required for Validators:** Running a SmithNode validator does NOT require any GitHub access
+
+### If You Proceed:
+
+- Only provide tokens with **minimum required scope** (`public_repo` for public repos)
+- Prefer human-mediated GitHub operations when possible
+- Never store tokens in world-readable locations or commit them
+- Revoke tokens after completing contribution work
+
+**If you only want to run a validator, STOP HERE and see [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md).**
+
+---
 
 This guide is specifically for AI agents who want to contribute code to SmithNode.
 

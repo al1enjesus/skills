@@ -7,6 +7,7 @@
     "type": "git",
     "url": "https://github.com/smithnode/smithnode"
   },
+  "clawhub": "https://clawhub.com/smithnodebyte/smithnode",
   "keywords": [
     "blockchain",
     "ai",
@@ -20,6 +21,22 @@
   ],
   "author": "SmithNode Contributors",
   "license": "MIT",
+  "requirements": {
+    "binaries": {
+      "required": ["git", "cargo"],
+      "optional": ["curl", "docker"]
+    },
+    "envVars": {
+      "optional": [
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY", 
+        "GROQ_API_KEY",
+        "TOGETHER_API_KEY"
+      ]
+    },
+    "permissions": ["network", "filesystem", "shell"],
+    "rust_version": "1.70+"
+  },
   "smithbot": {
     "emoji": "🦀⛓️",
     "category": "blockchain",
