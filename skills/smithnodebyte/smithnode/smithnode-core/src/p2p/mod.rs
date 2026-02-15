@@ -54,7 +54,7 @@ pub const TOPIC_UPGRADES: &str = "smithnode/upgrades/1.0.0";
 const TOPIC_AI_MESSAGES: &str = "smithnode/ai-messages/1.0.0";
 const TOPIC_TRANSACTIONS: &str = "smithnode/transactions/1.0.0";
 const TOPIC_GOVERNANCE: &str = "smithnode/governance/1.0.0";
-const TOPIC_BINARY_SEED: &str = "smithnode/binary-seed/1.0.0";
+const TOPIC_PEER_RELAY: &str = "smithnode/peer-relay/1.0.0";
 
 /// Trusted operator public keys for upgrade announcements
 /// These are the ONLY keys that can announce valid upgrades
@@ -327,7 +327,7 @@ pub fn add_bootstrap_peer(multiaddr: String) {
     }
 }
 
-/// Auto-update system: Tracks versions seen on the network AND verified upgrade announcements
+/// Release management: Tracks versions seen on the network AND verified upgrade announcements
 #[derive(Clone, Default)]
 pub struct VersionTracker {
     /// Map of version -> (count of peers, first seen timestamp)
@@ -697,60 +697,60 @@ pub struct UpgradeChecksums {
     pub windows_x64: Option<String>,
 }
 
-/// P2P Binary Seed Announcement — after a peer downloads the upgrade binary,
-/// it announces itself as a seed so other peers can download from it via P2P
+/// P2P Peer Relay Announcement — after a peer downloads the upgrade binary,
+/// it announces itself as a relay so other peers can download from it via P2P
 /// instead of requiring external HTTP access.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct BinarySeedAnnouncement {
-    /// Version being seeded
+pub struct PeerRelayAnnouncement {
+    /// Version being relayed
     pub version: String,
-    /// Platform this seed has (e.g. "darwin_arm64", "linux_x64")
+    /// Platform this relay has (e.g. "darwin_arm64", "linux_x64")
     pub platform: String,
     /// URL where the binary can be downloaded from this peer (e.g. http://peer-ip:port/binary)
-    pub seed_url: String,
+    pub relay_url: String,
     /// SHA256 checksum of the binary
     pub checksum: String,
-    /// Peer ID of the seeder
+    /// Peer ID of the relayer
     pub peer_id: String,
     /// Timestamp
     pub timestamp: u64,
 }
 
-/// Global binary seed tracker — collects seed announcements from peers
-static BINARY_SEEDS: std::sync::OnceLock<Arc<RwLock<Vec<BinarySeedAnnouncement>>>> = std::sync::OnceLock::new();
+/// Global peer relay tracker — collects relay announcements from peers
+static PEER_RELAYS: std::sync::OnceLock<Arc<RwLock<Vec<PeerRelayAnnouncement>>>> = std::sync::OnceLock::new();
 
-pub fn get_binary_seeds() -> &'static Arc<RwLock<Vec<BinarySeedAnnouncement>>> {
-    BINARY_SEEDS.get_or_init(|| Arc::new(RwLock::new(Vec::new())))
+pub fn get_peer_relays() -> &'static Arc<RwLock<Vec<PeerRelayAnnouncement>>> {
+    PEER_RELAYS.get_or_init(|| Arc::new(RwLock::new(Vec::new())))
 }
 
-/// Record a binary seed from a peer
-/// Maximum number of binary seed entries to prevent unbounded memory growth
-const MAX_BINARY_SEEDS: usize = 500;
+/// Record a peer relay
+/// Maximum number of peer relay entries to prevent unbounded memory growth
+const MAX_PEER_RELAYS: usize = 500;
 
-pub fn record_binary_seed(seed: BinarySeedAnnouncement) {
-    let seeds = get_binary_seeds();
-    let mut list = seeds.write_or_recover();
+pub fn record_peer_relay(relay: PeerRelayAnnouncement) {
+    let relays = get_peer_relays();
+    let mut list = relays.write_or_recover();
     // Don't duplicate
-    if !list.iter().any(|s| s.peer_id == seed.peer_id && s.version == seed.version && s.platform == seed.platform) {
-        tracing::info!("🌱 New binary seed: peer {} has v{} for {}", &seed.peer_id[..12.min(seed.peer_id.len())], seed.version, seed.platform);
+    if !list.iter().any(|r| r.peer_id == relay.peer_id && r.version == relay.version && r.platform == relay.platform) {
+        tracing::info!("🌱 New peer relay: peer {} has v{} for {}", &relay.peer_id[..12.min(relay.peer_id.len())], relay.version, relay.platform);
         // Cap to prevent unbounded memory growth from spam
-        if list.len() >= MAX_BINARY_SEEDS {
+        if list.len() >= MAX_PEER_RELAYS {
             // Remove oldest quarter of entries
             let drain_count = list.len() / 4;
             list.drain(0..drain_count);
-            tracing::debug!("🧹 Pruned {} old binary seed entries", drain_count);
+            tracing::debug!("🧹 Pruned {} old peer relay entries", drain_count);
         }
-        list.push(seed);
+        list.push(relay);
     }
 }
 
-/// Get seed URLs for a specific version and platform
-pub fn get_seed_urls(version: &str, platform: &str) -> Vec<String> {
-    let seeds = get_binary_seeds();
-    let list = seeds.read_or_recover();
+/// Get relay URLs for a specific version and platform
+pub fn get_relay_urls(version: &str, platform: &str) -> Vec<String> {
+    let relays = get_peer_relays();
+    let list = relays.read_or_recover();
     list.iter()
-        .filter(|s| s.version == version && s.platform == platform)
-        .map(|s| s.seed_url.clone())
+        .filter(|r| r.version == version && r.platform == platform)
+        .map(|r| r.relay_url.clone())
         .collect()
 }
 
@@ -870,7 +870,7 @@ pub enum NetworkCommand {
     BroadcastGovernance(GovernanceGossipMessage),  // Governance proposals/votes via P2P
     BroadcastTransfer(TransferGossipMessage),  // Transfer broadcast via P2P
     BroadcastUpgrade(UpgradeAnnouncement),  // Upgrade announcement via P2P
-    BroadcastBinarySeed(BinarySeedAnnouncement),  // "I have the binary, download from me"
+    BroadcastPeerRelay(PeerRelayAnnouncement),  // "I have the binary, download from me"
 }
 
 /// P2P liveness challenge — validators quiz each other asynchronously
@@ -1019,7 +1019,7 @@ pub struct SmithNodeNetwork {
     ai_message_topic: IdentTopic,  // AI-to-AI communication
     transaction_topic: IdentTopic,  // Transaction/registration broadcast
     governance_topic: IdentTopic,  // Governance proposals/votes broadcast
-    binary_seed_topic: IdentTopic,  // P2P binary distribution seed announcements
+    peer_relay_topic: IdentTopic,  // P2P binary distribution relay announcements
     local_peer_id: String,
     state: SmithNodeState,
     command_rx: mpsc::Receiver<NetworkCommand>,
@@ -1119,9 +1119,9 @@ impl NetworkHandle {
         Ok(())
     }
     
-    /// Broadcast that we have the binary and can seed it to peers
-    pub async fn broadcast_binary_seed(&self, seed: BinarySeedAnnouncement) -> anyhow::Result<()> {
-        self.command_tx.send(NetworkCommand::BroadcastBinarySeed(seed)).await?;
+    /// Broadcast that we have the binary and can relay it to peers
+    pub async fn broadcast_peer_relay(&self, relay: PeerRelayAnnouncement) -> anyhow::Result<()> {
+        self.command_tx.send(NetworkCommand::BroadcastPeerRelay(relay)).await?;
         Ok(())
     }
 }
@@ -1284,7 +1284,7 @@ impl SmithNodeNetwork {
         let ai_message_topic = IdentTopic::new(TOPIC_AI_MESSAGES);
         let transaction_topic = IdentTopic::new(TOPIC_TRANSACTIONS);
         let governance_topic = IdentTopic::new(TOPIC_GOVERNANCE);
-        let binary_seed_topic = IdentTopic::new(TOPIC_BINARY_SEED);
+        let peer_relay_topic = IdentTopic::new(TOPIC_PEER_RELAY);
         
         // Subscribe to topics
         swarm.behaviour_mut().gossipsub.subscribe(&challenge_topic)?;
@@ -1296,7 +1296,7 @@ impl SmithNodeNetwork {
         swarm.behaviour_mut().gossipsub.subscribe(&ai_message_topic)?;
         swarm.behaviour_mut().gossipsub.subscribe(&transaction_topic)?;
         swarm.behaviour_mut().gossipsub.subscribe(&governance_topic)?;
-        swarm.behaviour_mut().gossipsub.subscribe(&binary_seed_topic)?;
+        swarm.behaviour_mut().gossipsub.subscribe(&peer_relay_topic)?;
         
         // Listen on all interfaces
         let listen_addr: Multiaddr = format!("/ip4/0.0.0.0/tcp/{}", port).parse()?;
@@ -1317,7 +1317,7 @@ impl SmithNodeNetwork {
             ai_message_topic,
             transaction_topic,
             governance_topic,
-            binary_seed_topic,
+            peer_relay_topic,
             local_peer_id: local_peer_id.to_string(),
             state,
             command_rx,
@@ -1443,8 +1443,8 @@ impl SmithNodeNetwork {
                     TOPIC_GOVERNANCE => {
                         self.handle_governance_message(&message.data).await;
                     }
-                    TOPIC_BINARY_SEED => {
-                        self.handle_binary_seed_message(&message.data).await;
+                    TOPIC_PEER_RELAY => {
+                        self.handle_peer_relay_message(&message.data).await;
                     }
                     _ => {}
                 }
@@ -2067,17 +2067,17 @@ impl SmithNodeNetwork {
                     }
                 }
             }
-            NetworkCommand::BroadcastBinarySeed(seed) => {
-                tracing::info!("🌱 Broadcasting binary seed: v{} for {} at {}", seed.version, seed.platform, seed.seed_url);
-                if let Ok(data) = serde_json::to_vec(&seed) {
+            NetworkCommand::BroadcastPeerRelay(relay) => {
+                tracing::info!("🌱 Broadcasting peer relay: v{} for {} at {}", relay.version, relay.platform, relay.relay_url);
+                if let Ok(data) = serde_json::to_vec(&relay) {
                     if let Err(e) = self.swarm
                         .behaviour_mut()
                         .gossipsub
-                        .publish(self.binary_seed_topic.clone(), data)
+                        .publish(self.peer_relay_topic.clone(), data)
                     {
-                        tracing::warn!("Failed to broadcast binary seed: {}", e);
+                        tracing::warn!("Failed to broadcast peer relay: {}", e);
                     } else {
-                        tracing::info!("📢 Binary seed broadcasted to P2P network");
+                        tracing::info!("📢 Peer relay broadcasted to P2P network");
                     }
                 }
             }
@@ -2315,7 +2315,7 @@ impl SmithNodeNetwork {
                     return;
                 }
                 
-                // Track peer versions for auto-update detection
+                // Track peer versions for release management
                 get_version_tracker().record_version(&presence.version);
                 
                 // *** CRITICAL: Record this as a P2P-VERIFIED validator ***
@@ -2376,21 +2376,21 @@ impl SmithNodeNetwork {
         }
     }
     
-    /// Handle incoming binary seed announcement — a peer has the upgrade binary
-    async fn handle_binary_seed_message(&mut self, data: &[u8]) {
-        match serde_json::from_slice::<BinarySeedAnnouncement>(data) {
-            Ok(seed) => {
+    /// Handle incoming peer relay announcement — a peer has the upgrade binary
+    async fn handle_peer_relay_message(&mut self, data: &[u8]) {
+        match serde_json::from_slice::<PeerRelayAnnouncement>(data) {
+            Ok(relay) => {
                 tracing::info!(
-                    "🌱 Peer {} is seeding v{} for {} at {}",
-                    &seed.peer_id[..12.min(seed.peer_id.len())],
-                    seed.version,
-                    seed.platform,
-                    seed.seed_url
+                    "🌱 Peer {} is relaying v{} for {} at {}",
+                    &relay.peer_id[..12.min(relay.peer_id.len())],
+                    relay.version,
+                    relay.platform,
+                    relay.relay_url
                 );
-                record_binary_seed(seed);
+                record_peer_relay(relay);
             }
             Err(e) => {
-                tracing::debug!("Failed to parse binary seed message: {}", e);
+                tracing::debug!("Failed to parse peer relay message: {}", e);
             }
         }
     }

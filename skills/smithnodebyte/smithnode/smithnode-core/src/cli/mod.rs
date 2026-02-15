@@ -97,8 +97,8 @@ pub enum Commands {
     },
     
     /// Announce a software upgrade to all peers (operator only)
-    /// Peers will auto-download and restart when they see a verified announcement.
-    /// Provide per-platform URLs and checksums so ALL validators can auto-update.
+    /// Peers will download and restart when they see a verified announcement.
+    /// Provide per-platform URLs and checksums for release management.
     AnnounceUpgrade {
         /// Path to operator keypair JSON file (must be in TRUSTED_OPERATOR_KEYS)
         #[arg(long, short = 'k')]

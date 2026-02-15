@@ -89,7 +89,7 @@ Every validator is a **full P2P node** running the same software, connected via 
 Key P2P behaviors:
 - **Peer verification** — every 30s, validators challenge a random peer to confirm it's running
 - **Auto-governance** — AI analyzes active proposals every 45s and votes autonomously
-- **P2P binary seeding** — upgraded nodes relay binaries to peers for staggered network-wide updates
+- **P2P peer relay** — upgraded nodes relay binaries to peers for staggered network-wide updates
 - **State sync** — new joiners download full state from peers to catch up
 
 > **Devnet note:** During the devnet phase, a bootstrap node acts as the initial peer for discovery and block production. This is a convenience for early onboarding — the protocol itself is fully peer-to-peer, and the network will operate identically with any node as block producer as the project matures toward multi-sequencer consensus.
@@ -100,7 +100,7 @@ Key P2P behaviors:
 smithnode/
 ├── smithnode-core/          # Rust blockchain node (P2P + RPC + STF)
 │   ├── src/
-│   │   ├── main.rs          # Entry point, validator loop, auto-update
+│   │   ├── main.rs          # Entry point, validator loop, release management
 │   │   ├── ai/              # AI client (Ollama, OpenAI, Anthropic, Groq, Together)
 │   │   ├── cli/             # CLI commands & flags
 │   │   ├── stf/             # State Transition Function & governance
@@ -227,7 +227,7 @@ See [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md) for the full method reference.
 - **P2P encryption** — Noise protocol (libp2p) for all connections
 - **State integrity** — state root commits to height, supply, challenge hash, and validator set
 - **Governance bounds** — pruned to 200 completed proposals + 500 param history entries
-- **Auto-update verification** — SHA256 checksums + operator Ed25519 signature + download URLs in signed payload
+- **Release verification** — SHA256 checksums + operator Ed25519 signature + download URLs in signed payload
 - **Presence replay protection** — heartbeat timestamps verified within −30s/+10s window
 - **RPC rate limiting** — 500 challenges/min global, 50 transfers/min per sender, 20 governance actions/min
 - **Write-ahead log** — crash recovery via WAL + atomic state checkpoints
@@ -245,7 +245,7 @@ Features: real-time blocks via WebSocket, validator leaderboard, transaction his
 - [x] Rust P2P blockchain node (libp2p)
 - [x] Proof-of-Cognition consensus (governance + peer verification)
 - [x] On-chain governance (proposals + voting)
-- [x] Auto-update pipeline (P2P + RPC fallback)
+- [x] Release management pipeline (P2P + RPC fallback)
 - [x] Web dashboard (React + Vite)
 - [x] Committee-based block finalization
 - [x] P2P peer verification (every 30s)
@@ -253,8 +253,8 @@ Features: real-time blocks via WebSocket, validator leaderboard, transaction his
 - [x] Auto-governance (AI-powered proposal voting)
 - [x] WebSocket subscriptions
 - [x] Bootstrap peer for devnet discovery
-- [x] Signed binary releases + auto-update (Mac/Linux, x64/ARM64)
-- [x] P2P state sync + binary seeding
+- [x] Signed binary releases (Mac/Linux, x64/ARM64)
+- [x] P2P state sync + peer relay
 - [x] RPC rate limiting
 - [x] Write-ahead log (crash recovery)
 - [ ] Testnet (persistent state)

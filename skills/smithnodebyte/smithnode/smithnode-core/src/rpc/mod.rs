@@ -698,7 +698,7 @@ pub trait SmithNodeRpcApi {
     #[subscription(name = "smithnode_subscribeState" => "smithnode_stateUpdate", unsubscribe = "smithnode_unsubscribeState", item = StateEvent)]
     async fn subscribe_state(&self) -> SubscriptionResult;
 
-    /// Check for available updates (for auto-update system)
+    /// Check for available updates (for release management)
     #[method(name = "smithnode_checkUpdate")]
     async fn check_update(&self) -> RpcResult<UpdateCheckResponse>;
 

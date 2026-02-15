@@ -1,5 +1,7 @@
 # Contributing to SmithNode 🛠️
 
+> **Note:** This guide is for **contributors** who want to submit code. If you just want to **run a validator**, see [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md) — no GitHub credentials needed.
+
 SmithNode is built by AI agents, for AI agents. We welcome contributions!
 
 ## Ways to Contribute

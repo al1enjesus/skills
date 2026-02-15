@@ -1471,7 +1471,7 @@ async fn main() -> anyhow::Result<()> {
                 }
             });
             
-            // Clone network_handle for auto-update task before it's consumed by RPC
+            // Clone network_handle for release management task before it's consumed by RPC
             let network_handle_for_update = network_handle.clone();
             
             // Optionally start RPC for monitoring
@@ -1567,12 +1567,12 @@ async fn main() -> anyhow::Result<()> {
             tracing::info!("   Validator: {}...", &public_key_hex[..16]);
             tracing::info!("══════════════════════════════════════════════════");
 
-            // Auto-update checker: periodically check for verified upgrades and self-update
+            // Release manager: periodically check for verified upgrades
             let state_for_update = state.clone();
             let data_dir_for_update = data_dir.clone();
             let p2p_port_for_update = p2p_addr.port();
             let sequencer_rpc_for_update = sequencer_rpc.clone();
-            let auto_update_handle = tokio::spawn(async move {
+            let release_manager_handle = tokio::spawn(async move {
                 let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
                 
                 // ── PERSIST applied_version across exec() restarts ──
@@ -1663,26 +1663,26 @@ async fn main() -> anyhow::Result<()> {
                         };
                         
                         if let (Some(url), Some(checksum)) = (download_url, expected_checksum) {
-                            // ── P2P BINARY RELAY: Try peer seeds first, then HTTP ──
+                            // ── P2P BINARY RELAY: Try peer relays first, then HTTP ──
                             let download_key = format!("{}_{}", 
                                 match platform { "macos" => "darwin", p => p },
                                 match arch { "aarch64" => "arm64", "x86_64" => "x64", a => a }
                             );
-                            let peer_seeds = p2p::get_seed_urls(&upgrade.version, &download_key);
+                            let peer_relays = p2p::get_relay_urls(&upgrade.version, &download_key);
                             
-                            // Build URL list: peer seeds first (P2P relay), then operator HTTP URL
-                            let mut try_urls: Vec<String> = peer_seeds;
+                            // Build URL list: peer relays first (P2P relay), then operator HTTP URL
+                            let mut try_urls: Vec<String> = peer_relays;
                             try_urls.push(url.clone());
                             
                             if try_urls.len() > 1 {
-                                tracing::info!("🌱 {} P2P seed(s) available + 1 HTTP source", try_urls.len() - 1);
+                                tracing::info!("🌱 {} P2P relay(s) available + 1 HTTP source", try_urls.len() - 1);
                             }
                             
                             let mut download_success = false;
                             let mut downloaded_bytes: Option<Vec<u8>> = None;
                             
                             for (i, try_url) in try_urls.iter().enumerate() {
-                                let source = if i < try_urls.len() - 1 { "P2P seed" } else { "HTTP" };
+                                let source = if i < try_urls.len() - 1 { "P2P relay" } else { "HTTP" };
                                 tracing::info!("⬇️  [{}] Downloading from: {}", source, try_url);
                                 
                                 match reqwest::get(try_url).await {
@@ -1733,14 +1733,14 @@ async fn main() -> anyhow::Result<()> {
                             
                             let bytes = downloaded_bytes.unwrap();
                             
-                            // ── ANNOUNCE AS P2P SEED ──
+                            // ── ANNOUNCE AS P2P RELAY ──
                             // After successful download, tell peers we have the binary
                             {
-                                let seed_announcement = p2p::BinarySeedAnnouncement {
+                                let relay_announcement = p2p::PeerRelayAnnouncement {
                                     version: upgrade.version.clone(),
                                     platform: download_key.clone(),
                                     // Peers can download from our RPC port (mini binary server)
-                                    seed_url: format!("http://127.0.0.1:{}/upgrade-binary", p2p_port_for_update + 10),
+                                    relay_url: format!("http://127.0.0.1:{}/upgrade-binary", p2p_port_for_update + 10),
                                     checksum: checksum.clone(),
                                     peer_id: p2p::get_local_peer_info()
                                         .map(|p| p.peer_id.clone())
@@ -1750,7 +1750,7 @@ async fn main() -> anyhow::Result<()> {
                                         .unwrap_or_default()
                                         .as_secs(),
                                 };
-                                let _ = network_handle_for_update.broadcast_binary_seed(seed_announcement).await;
+                                let _ = network_handle_for_update.broadcast_peer_relay(relay_announcement).await;
                             }
                             
                             // ── FLUSH STATE BEFORE RESTART ──
@@ -1860,7 +1860,7 @@ async fn main() -> anyhow::Result<()> {
                 _ = event_handler => {}
                 _ = validator_handle => {}
                 _ = governance_handle => {}
-                _ = auto_update_handle => {}
+                _ = release_manager_handle => {}
             }
 
             if let Some(h) = rpc_handle {

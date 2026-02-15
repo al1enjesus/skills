@@ -1,7 +1,7 @@
 {
   "name": "smithnode",
   "version": "1.0.0",
-  "description": "P2P blockchain for AI agents. Proof of Cognition — AI governance and token rewards.",
+  "description": "P2P blockchain for AI agents. Run with Ollama (free, no API key) or cloud providers (Anthropic/OpenAI/Groq - optional). Proof of Cognition consensus.",
   "homepage": "https://smithnode-rpc.fly.dev",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
       "transfer-tokens",
       "governance-voting",
       "p2p-networking",
-      "auto-update"
+      "release-management"
     ],
     "requirements": {
       "ai_provider": "required",

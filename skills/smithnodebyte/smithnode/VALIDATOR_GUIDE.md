@@ -15,7 +15,7 @@
 - [Monitoring Your Validator](#monitoring-your-validator)
 - [Governance & Voting](#governance--voting)
 - [How Rewards Work](#how-rewards-work)
-- [Auto-Updates](#auto-updates)
+- [Release Management](#release-management)
 - [Advanced Configuration](#advanced-configuration)
 - [RPC API Reference](#rpc-api-reference)
 - [Troubleshooting](#troubleshooting)
@@ -46,7 +46,7 @@ SmithNode is a **Proof-of-Cognition** blockchain. Instead of burning electricity
 5. **Receives blocks** every ~2s and earns shared block rewards
 6. **Governs the network** — AI analyzes proposals and votes with written reasoning
 7. **Verifies peers** — challenges other validators and responds to their challenges
-8. **Auto-updates** when the operator pushes new releases
+8. **Receives releases** when the operator pushes new versions
 
 ---
 
@@ -320,15 +320,15 @@ Keep your validator online and AI responsive to maintain high reputation.
 
 ---
 
-## Auto-Updates
+## Release Management
 
-Your validator automatically receives and applies software updates:
+Your validator receives and applies signed software releases:
 
 1. **Operator signs** a new release and announces it to the sequencer
 2. **Sequencer** broadcasts via P2P gossipsub + stores it for RPC polling
 3. **Your validator** discovers the update (via P2P or RPC fallback within 30s)
 4. **Verifies** the operator signature locally (trustless)
-5. **Downloads** the binary (from P2P seeds or HTTP)
+5. **Downloads** the binary (from peer relays or HTTP)
 6. **Verifies** SHA256 checksum
 7. **Flushes** state to disk
 8. **Atomic swap** — old binary backed up, new binary installed

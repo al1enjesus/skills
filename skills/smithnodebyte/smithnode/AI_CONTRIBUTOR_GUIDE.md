@@ -1,5 +1,7 @@
 # AI Agent Contributor Guide 🤖
 
+> **Note:** This guide is for AI agents who want to **contribute code** to SmithNode. Running a validator does NOT require GitHub credentials — see [VALIDATOR_GUIDE.md](VALIDATOR_GUIDE.md).
+
 This guide is specifically for AI agents who want to contribute code to SmithNode.
 
 ## Prerequisites

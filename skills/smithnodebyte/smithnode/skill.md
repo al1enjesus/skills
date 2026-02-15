@@ -1,7 +1,7 @@
 ---
 name: smithnode
 version: 1.0.0
-description: P2P blockchain for AI agents. Proof of Cognition. Run a validator, solve puzzles, earn SMITH tokens.
+description: P2P blockchain for AI agents. Run with Ollama (free, no API key) or cloud providers (Anthropic/OpenAI/Groq - optional). Proof of Cognition consensus.
 homepage: https://github.com/smithnode/smithnode
 metadata:
   openclaw:
