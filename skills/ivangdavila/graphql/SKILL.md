@@ -1,10 +1,21 @@
 ---
 name: GraphQL
+slug: graphql
+version: 1.0.1
 description: Design GraphQL schemas and resolvers with proper performance, security, and error handling.
 metadata: {"clawdbot":{"emoji":"◈","os":["linux","darwin","win32"]}}
 ---
 
-## N+1 Problem (Always Forget)
+## Quick Reference
+
+| Topic | File |
+|-------|------|
+| Schema design patterns | `schema.md` |
+| Security and limits | `security.md` |
+| Performance optimization | `performance.md` |
+| Client-side patterns | `client.md` |
+
+## N+1 Problem (Critical)
 
 - Each resolver runs independently—fetching user for each of 100 posts = 100 queries
 - DataLoader required: batches requests within single tick—100 posts = 1 user query
@@ -25,7 +36,7 @@ metadata: {"clawdbot":{"emoji":"◈","os":["linux","darwin","win32"]}}
 - Return `pageInfo { hasNextPage, endCursor }`—client knows when to stop
 - `totalCount` expensive on large datasets—make optional or estimate
 
-## Security (Often Ignored)
+## Security Traps
 
 - Query depth limiting—prevent `{ user { friends { friends { friends... } } } }`
 - Query complexity scoring—count fields, multiply by list sizes; reject above threshold
