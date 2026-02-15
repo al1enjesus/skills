@@ -89,7 +89,7 @@ openclaw gateway restart
 | Option | Default | Description |
 |--------|---------|-------------|
 | `chromaUrl` | `http://localhost:8100` | ChromaDB server URL |
-| `collectionId` | *required* | ChromaDB collection UUID |
+| `collectionName (recommended) or collectionId* | ChromaDB collection UUID |
 | `ollamaUrl` | `http://localhost:11434` | Ollama API URL |
 | `embeddingModel` | `nomic-embed-text` | Ollama embedding model |
 | `autoRecall` | `true` | Auto-inject relevant memories each turn |

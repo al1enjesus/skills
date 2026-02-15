@@ -18,6 +18,7 @@ type OpenClawPluginApi = any;
 interface ChromaDBConfig {
   chromaUrl: string;
   collectionId: string;
+  collectionName: string;
   ollamaUrl: string;
   embeddingModel: string;
   autoRecall: boolean;
@@ -29,7 +30,8 @@ function parseConfig(raw: unknown): ChromaDBConfig {
   const cfg = (raw ?? {}) as Record<string, unknown>;
   return {
     chromaUrl: (cfg.chromaUrl as string) || "http://localhost:8100",
-    collectionId: cfg.collectionId as string,
+    collectionId: (cfg.collectionId as string) || "",
+    collectionName: (cfg.collectionName as string) || "longterm_memory",
     ollamaUrl: (cfg.ollamaUrl as string) || "http://localhost:11434",
     embeddingModel: (cfg.embeddingModel as string) || "nomic-embed-text",
     autoRecall: cfg.autoRecall !== false,
@@ -74,6 +76,45 @@ interface ChromaResult {
 }
 
 const CHROMA_BASE = "/api/v2/tenants/default_tenant/databases/default_database/collections";
+
+// Resolve collection ID by name (survives reindexing)
+let _resolvedCollectionId: string | null = null;
+
+async function resolveCollectionId(
+  chromaUrl: string,
+  collectionId: string,
+  collectionName: string,
+): Promise<string> {
+  // If we already resolved it this session, reuse
+  if (_resolvedCollectionId) return _resolvedCollectionId;
+
+  // If collectionId is set, verify it still exists
+  if (collectionId) {
+    try {
+      const resp = await fetch(`${chromaUrl}${CHROMA_BASE}/${collectionId}`);
+      if (resp.ok) {
+        _resolvedCollectionId = collectionId;
+        return collectionId;
+      }
+    } catch {
+      // Fall through to name lookup
+    }
+  }
+
+  // Look up by name
+  const resp = await fetch(`${chromaUrl}${CHROMA_BASE}`);
+  if (!resp.ok) throw new Error(`ChromaDB list collections failed: ${resp.status}`);
+
+  const collections = (await resp.json()) as Array<{ id: string; name: string }>;
+  const match = collections.find((c) => c.name === collectionName);
+
+  if (!match) {
+    throw new Error(`ChromaDB collection "${collectionName}" not found. Available: ${collections.map((c) => c.name).join(", ")}`);
+  }
+
+  _resolvedCollectionId = match.id;
+  return match.id;
+}
 
 async function queryChromaDB(
   chromaUrl: string,
@@ -123,14 +164,19 @@ async function queryChromaDB(
 export default function register(api: OpenClawPluginApi) {
   const cfg = parseConfig(api.pluginConfig);
 
-  if (!cfg.collectionId) {
-    api.logger.warn("chromadb-memory: No collectionId configured, plugin disabled");
+  if (!cfg.collectionId && !cfg.collectionName) {
+    api.logger.warn("chromadb-memory: No collectionId or collectionName configured, plugin disabled");
     return;
   }
 
   api.logger.info(
-    `chromadb-memory: registered (chroma: ${cfg.chromaUrl}, ollama: ${cfg.ollamaUrl}, model: ${cfg.embeddingModel})`,
+    `chromadb-memory: registered (chroma: ${cfg.chromaUrl}, collection: ${cfg.collectionId || cfg.collectionName}, ollama: ${cfg.ollamaUrl}, model: ${cfg.embeddingModel})`,
   );
+
+  // Helper to get resolved collection ID
+  async function getCollectionId(): Promise<string> {
+    return resolveCollectionId(cfg.chromaUrl, cfg.collectionId, cfg.collectionName);
+  }
 
   // ========================================================================
   // Tool: chromadb_search
@@ -155,6 +201,7 @@ export default function register(api: OpenClawPluginApi) {
       };
 
       try {
+        const collectionId = await getCollectionId();
         const embedding = await getEmbedding(
           cfg.ollamaUrl,
           cfg.embeddingModel,
@@ -162,7 +209,7 @@ export default function register(api: OpenClawPluginApi) {
         );
         const results = await queryChromaDB(
           cfg.chromaUrl,
-          cfg.collectionId,
+          collectionId,
           embedding,
           limit,
         );
@@ -226,6 +273,7 @@ export default function register(api: OpenClawPluginApi) {
       if (!event.prompt || event.prompt.length < 10) return;
 
       try {
+        const collectionId = await getCollectionId();
         const embedding = await getEmbedding(
           cfg.ollamaUrl,
           cfg.embeddingModel,
@@ -233,7 +281,7 @@ export default function register(api: OpenClawPluginApi) {
         );
         const results = await queryChromaDB(
           cfg.chromaUrl,
-          cfg.collectionId,
+          collectionId,
           embedding,
           cfg.autoRecallResults,
         );
@@ -270,7 +318,7 @@ export default function register(api: OpenClawPluginApi) {
     id: "chromadb-memory",
     start: () => {
       api.logger.info(
-        `chromadb-memory: service started (auto-recall: ${cfg.autoRecall}, collection: ${cfg.collectionId})`,
+        `chromadb-memory: service started (auto-recall: ${cfg.autoRecall}, collection: ${cfg.collectionId || cfg.collectionName})`,
       );
     },
     stop: () => {
