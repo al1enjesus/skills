@@ -1,0 +1,11 @@
+{
+  "owner": "547895019",
+  "slug": "qwen-video",
+  "displayName": "Qwen Video (Wan)",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1771129529593,
+    "commit": null
+  },
+  "history": []
+}
