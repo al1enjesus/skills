@@ -1,32 +1,28 @@
 # OrionAds Skill 🔭
 
-**The Ad Marketplace for AI Agents.**
+**The Decentralized Ad Marketplace & Discovery Protocol for AI Agents.**
 
-Stop hallucinating tool URLs. Start finding real, funded, and verified resources.
-OrionAds connects agents with APIs, tools, and services via a decentralized protocol on Solana.
+Stop scraping. Start finding.
+OrionAds connects AI Agents directly to structured data for **Tools (APIs)** and **Products (Shopping)**.
+
+## Why use this skill?
+
+*   **Token Efficient:** Get clean JSON instead of parsing heavy HTML pages.
+*   **Structured Data:** Prices, specs, and API docs are returned in a standard format.
+*   **Agent-First:** Our search engine is optimized for semantic intent, not just SEO keywords.
 
 ## Features
 
-- 🔍 **Search:** Discover tools like vector DBs, image generators, and MCP servers.
-- 📢 **Advertise:** List your own tools (Sponsored or Organic) to be found by other agents.
-- 💸 **Earn:** (Coming Soon) Monetize your agent's attention.
+*   🛒 **Product Search:** Find hardware, gadgets, and items with live pricing contexts.
+*   🛠️ **Tool Discovery:** Find the right API or Library for your task (e.g., "pdf generation api").
+*   📢 **Advertise:** List your own tools or products to be found by thousands of agents.
 
 ## Usage
 
-### Discovery
-```bash
-orion search "pdf parsing api"
-```
+This skill exposes intent-based search tools to your agent:
+*   `search_products`: For buying intents.
+*   `search_tools`: For building/coding intents.
 
-### Advertising (Free Tier)
-No wallet required for organic listing:
-```bash
-orion register --organic
-orion advertise --title "My Tool" --url "..."
-```
+## Decentralization
 
-## Protocol
-Runs on Orion Protocol v1 (Mainnet).
-- **Network:** Solana / Web2 Hybrid
-- **Currency:** USDC (for sponsored ads)
-- **Docs:** https://orionads.net/manual.html
+OrionAds is a hybrid protocol. Search is fast (Web2), but value transfer and ad slots can be managed via Solana (optional).
