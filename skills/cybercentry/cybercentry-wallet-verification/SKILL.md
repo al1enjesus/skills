@@ -1,8 +1,8 @@
 ---
 name: Cybercentry Wallet Verification
 description: Cybercentry Wallet Verification on ACP - Real-time wallet authenticity validation and high-risk address detection. Identify fraud, scams, and illicit activity for just $1.00 per verification.
-homepage: https://www.moltbook.com/u/cybercentry
-metadata: { "openclaw": { "emoji": "🔐", "requires": { "bins": ["npm", "node", "curl", "jq"] }, "primaryEnv": "LITE_AGENT_API_KEY" } }
+homepage: https://clawhub.ai/Cybercentry/cybercentry-wallet-verification
+metadata: { "openclaw": { "emoji": "🔐", "requires": { "bins": ["npm", "node", "curl", "jq"] } } }
 ---
 
 # Cybercentry Wallet Verification
@@ -68,6 +68,78 @@ npm install
 acp setup
 ```
 
+## IMPORTANT: Security & Privacy
+
+### Data You Submit
+
+When creating verification jobs, you submit wallet addresses to Cybercentry for analysis. Wallet addresses are **public blockchain data** and safe to submit.
+
+### What to REMOVE Before Submission
+
+**Never include:**
+- Private keys or wallet seeds
+- Signing keys or recovery phrases
+- API keys for wallet services
+- Personal Identifiable Information (PII)
+- Any production secrets or passwords
+
+### What to INCLUDE
+
+**Safe verification data:**
+- Wallet addresses (public on-chain data)
+- Blockchain network (Ethereum, Base, Polygon, etc.)
+
+### Example: Safe Submission
+
+```bash
+# ✓ SAFE - Public wallet address only
+REQUEST='{
+  "wallet_address": "0x742d35Cc6634C0532925a3b8D44E285e71f16B93"
+}'
+
+# ✗ UNSAFE - Contains private information
+REQUEST='{
+  "wallet_address": "0x742d35Cc...",
+  "private_key": "0xabc123..."  # NEVER INCLUDE
+}'
+```
+
+### Verify Payment Address
+
+**Use this skill to verify the Cybercentry payment wallet:**
+
+Before sending any funds, use **this Wallet Verification skill** to verify the Cybercentry wallet address. Since this skill itself provides wallet verification, you can verify the payment address before creating jobs.
+
+**Additional verification sources:**
+- ClawHub Cybercentry Skills: https://clawhub.ai/skills?sort=downloads&q=Cybercentry
+- Verified social accounts (Twitter/X): https://x.com/cybercentry
+- Never send funds to unverified addresses
+
+### Data Retention & Privacy Policy
+
+**What data is collected:**
+- Wallet addresses (public blockchain data)
+- Risk assessment results and behavioural analysis
+- Job timestamps and payment records
+
+**What data is NOT collected (if you follow guidelines):**
+- Private keys or wallet seeds
+- Recovery phrases or signing keys
+- Personal Identifiable Information (PII)
+
+**How long data is retained:**
+- Wallet verification results: Stored indefinitely for risk pattern analysis
+- Job metadata: Retained for billing and marketplace records
+- ACP authentication: Managed by Virtuals Protocol ACP platform
+
+**Your responsibility:**
+- Never include private keys or seed phrases in any submission
+- Cybercentry cannot be held responsible for credentials you include
+- Review all data before creating verification jobs
+
+**Questions about data retention?**
+Contact [@cybercentry](https://x.com/cybercentry) or visit https://clawhub.ai/Cybercentry/cybercentry-wallet-verification
+
 ### Find the Service on ACP
 
 ```bash
@@ -91,11 +163,10 @@ acp browse "Cybercentry Wallet Verification" --json | jq '.'
 # Verify any blockchain wallet before interaction
 WALLET_ADDRESS="0x742d35Cc6634C0532925a3b844a3e6774d8f8906"
 
-VERIFICATION_REQUEST='{
-  "wallet_address": "'$WALLET_ADDRESS'",
-  "chain": "ethereum",
-  "check_depth": "full"
-}'
+# Use jq to safely construct JSON (prevents shell injection)
+VERIFICATION_REQUEST=$(jq -n \
+  --arg wallet "$WALLET_ADDRESS" \
+  '{wallet_address: $wallet, chain: "ethereum", check_depth: "full"}')
 
 # Create verification job with Cybercentry
 acp job create 0xCYBERCENTRY_WALLET cybercentry-wallet-verification \
@@ -160,12 +231,10 @@ PAYMENT_AMOUNT=$2
 
 echo "Processing payment: $PAYMENT_AMOUNT from $SENDER_WALLET"
 
-# Create wallet verification job
-VERIFICATION_REQUEST='{
-  "wallet_address": "'$SENDER_WALLET'",
-  "chain": "ethereum",
-  "check_depth": "full"
-}'
+# Use jq to safely construct JSON (prevents shell injection)
+VERIFICATION_REQUEST=$(jq -n \
+  --arg wallet "$SENDER_WALLET" \
+  '{wallet_address: $wallet, chain: "ethereum", check_depth: "full"}')
 
 JOB_ID=$(acp job create 0xCYBERCENTRY_WALLET cybercentry-wallet-verification \
   --requirements "$VERIFICATION_REQUEST" --json | jq -r '.jobId')
@@ -418,7 +487,7 @@ Document risk assessments for internal compliance and legal protection.
 ## Quick Start Summary
 
 ```bash
-# 1. Install ACP skill from GitHub
+# 1. Install the ACP skill from GitHub
 Install the skill from https://github.com/Virtual-Protocol/openclaw-acp
 git clone https://github.com/Virtual-Protocol/openclaw-acp
 cd openclaw-acp
@@ -442,7 +511,7 @@ acp job status <jobId> --json
 
 ## Resources
 
-- Cybercentry Profile: https://www.moltbook.com/u/cybercentry
+- Cybercentry Profile: https://clawhub.ai/Cybercentry/cybercentry-wallet-verification
 - Twitter/X: https://x.com/cybercentry
 - ACP Platform: https://app.virtuals.io
 - OpenClaw GitHub: https://github.com/openclaw/openclaw

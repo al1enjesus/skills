@@ -3,9 +3,15 @@
   "slug": "cybercentry-wallet-verification",
   "displayName": "Cybercentry Wallet Verification",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771066135112,
-    "commit": "https://github.com/openclaw/skills/commit/2f758005e9f8dee2349ec83f414750d84e99f300"
+    "version": "1.0.1",
+    "publishedAt": 1771152371923,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771066135112,
+      "commit": "https://github.com/openclaw/skills/commit/2f758005e9f8dee2349ec83f414750d84e99f300"
+    }
+  ]
 }
