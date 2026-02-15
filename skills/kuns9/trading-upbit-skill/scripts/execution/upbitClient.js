@@ -22,10 +22,17 @@ class UpbitClient {
         this.accessKey = accessKey;
         this.secretKey = secretKey;
         this.baseUrl = 'https://api.upbit.com/v1';
+        // Security: do not allow changing API host (ClawHub safety)
+        const allowedHost = 'api.upbit.com';
+        const u = new URL(this.baseUrl);
+        if (u.protocol !== 'https:' || u.host !== allowedHost) {
+            throw new Error(`Blocked baseUrl: ${this.baseUrl} (allowed: https://${allowedHost}/v1)`);
+        }
 
         this.api = axios.create({
             baseURL: this.baseUrl,
             timeout: 10000,
+            maxRedirects: 0,
             headers: { 'Content-Type': 'application/json' } // 권장되는 JSON 헤더
         });
 

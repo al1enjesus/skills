@@ -6,6 +6,9 @@
  */
 
 const { Logger } = require('../execution/upbitClient');
+const { loadConfig } = require('../config');
+
+const cfg = loadConfig();
 
 class RiskManager {
     /**
@@ -39,7 +42,13 @@ class RiskManager {
                 return { allow: true, budgetKRW: budget, fee: bidFee };
             }
 
-            if (event.type === 'TARGET_HIT' || event.type === 'STOPLOSS_HIT') {
+            if (
+                event.type === 'TARGET_HIT' ||
+                event.type === 'STOPLOSS_HIT' ||
+                event.type === 'TRAILING_STOP_HIT' ||
+                event.type === 'TAKEPROFIT_HARD' ||
+                event.type === 'SELL_PRESSURE_HIT'
+            ) {
                 // 매도의 경우 보유 수량 확인 (accounts)
                 const accounts = await upbitClient.request('GET', '/accounts');
                 const currency = event.market.split('-')[1];
@@ -49,7 +58,51 @@ class RiskManager {
                     return { allow: false, reason: 'NO_ASSET_TO_SELL' };
                 }
 
-                return { allow: true, volume: asset.balance, fee: askFee };
+                const fullVol = parseFloat(asset.balance);
+
+                // Optional: partial sell for SELL_PRESSURE_HIT (reduce-only)
+                let ratio = 1;
+                if (event.type === 'SELL_PRESSURE_HIT') {
+                    const r = Number(cfg.trading?.aggressive?.pressure?.sellReduceRatio ?? 1);
+                    if (Number.isFinite(r) && r > 0 && r < 1) ratio = r;
+                }
+
+                let volume = fullVol * ratio;
+                // Sell min_total guard (best-effort). Upbit /orders/chance exposes ask.min_total.
+                const minSellTotal = parseFloat(chance?.market?.ask?.min_total ?? chance?.market?.bid?.min_total ?? minTotal);
+                const current = Number(event?.meta?.current ?? event?.payload?.price ?? 0);
+                if (Number.isFinite(current) && current > 0 && Number.isFinite(minSellTotal) && minSellTotal > 0) {
+                    const est = current * volume;
+                    if (est < minSellTotal) {
+                        const fullEst = current * fullVol;
+                        if (fullEst >= minSellTotal) {
+                            // fallback: sell full position if partial would be rejected
+                            volume = fullVol;
+                            ratio = 1;
+                        } else {
+                            return { allow: false, reason: 'UNDER_MIN_TOTAL_SELL', detail: `추정매도금액 미달: ${est} < ${minSellTotal}` };
+                        }
+                    }
+                }
+
+                // Optional local minimum for pressure-based reduce sells
+                if (event.type === 'SELL_PRESSURE_HIT') {
+                    const localMin = Number(cfg.trading?.aggressive?.pressure?.sellReduceMinKrw ?? 0);
+                    if (Number.isFinite(localMin) && localMin > 0 && Number.isFinite(current) && current > 0) {
+                        const est = current * volume;
+                        if (est < localMin) {
+                            const fullEst = current * fullVol;
+                            if (fullEst >= localMin) {
+                                volume = fullVol;
+                                ratio = 1;
+                            } else {
+                                return { allow: false, reason: 'UNDER_LOCAL_MIN_SELL', detail: `설정 최소매도금액 미달: ${est} < ${localMin}` };
+                            }
+                        }
+                    }
+                }
+
+                return { allow: true, volume, fee: askFee, ratio };
             }
 
             return { allow: false, reason: 'UNKNOWN_EVENT_TYPE' };

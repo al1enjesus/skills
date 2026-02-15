@@ -48,7 +48,11 @@ class PositionsRepo {
     if (!pos) return;
     pos.state = 'OPEN';
     pos.entry.orderUuid = orderResult.uuid;
-    pos.entry.avgFillPrice = Number(orderResult.price || 0);
+    // NOTE:
+    // For market-buy (ord_type='price'), Upbit returns `price` as the KRW amount field, not the filled average price.
+    // The true avg fill price should be derived from /order(trades) or /accounts(avg_buy_price).
+    // We keep this field as a best-effort hint only.
+    pos.entry.avgFillPrice = Number(orderResult?.avgFillPrice || orderResult?.trade_price || 0);
     pos.entry.openedAt = new Date().toISOString();
 
     // trailing state
@@ -58,6 +62,36 @@ class PositionsRepo {
     pos.exit.trailingActive = !!pos.exit.trailingActive;
 
     await this.save(data);
+  }
+
+  /**
+   * Import an OPEN position from /accounts.
+   * - This allows the monitor/worker to manage assets bought outside this bot
+   *   (manual trades, previous runs, partial fills, etc.).
+   */
+  async importOpenFromAccounts(market, avgBuyPrice, meta = {}) {
+    const data = await this.load();
+    const exists = data.positions.find(p => p.market === market && (p.state === 'OPEN' || p.state === 'ENTRY_PENDING' || p.state === 'EXIT_PENDING'));
+    if (exists) return exists;
+
+    const newPos = {
+      id: `pos_import_${Date.now()}`,
+      market,
+      state: 'OPEN',
+      entry: {
+        budgetKRW: null,
+        orderUuid: null,
+        avgFillPrice: Number(avgBuyPrice || 0),
+        openedAt: null,
+        importedAt: new Date().toISOString(),
+      },
+      meta: { strategy: 'imported', ...meta },
+      exit: { peakPrice: Number(avgBuyPrice || 0), trailingActive: false },
+    };
+
+    data.positions.push(newPos);
+    await this.save(data);
+    return newPos;
   }
 
   async updatePeak(market, currentPrice, opts = {}) {
@@ -92,6 +126,31 @@ class PositionsRepo {
     if (!pos) return;
     pos.state = 'CLOSED';
     pos.exit = { ...(pos.exit || {}), orderUuid: orderResult.uuid, closedAt: new Date().toISOString() };
+    await this.save(data);
+  }
+
+  /**
+   * Record a partial exit (reduce-only) without closing the position.
+   * - Used for aggressive SELL_PRESSURE_HIT partial sells.
+   */
+  async recordPartialExit(market, orderResult, reason, ratio, meta = {}) {
+    const data = await this.load();
+    const pos = data.positions.find(p => p.market === market && p.state === 'OPEN');
+    if (!pos) return;
+
+    pos.exit = pos.exit || {};
+    pos.exit.partials = Array.isArray(pos.exit.partials) ? pos.exit.partials : [];
+    pos.exit.partials.push({
+      reason,
+      ratio: Number(ratio || 0),
+      orderUuid: orderResult?.uuid || null,
+      volume: orderResult?.volume || null,
+      createdAt: new Date().toISOString(),
+      meta,
+    });
+    pos.exit.lastPartialAt = new Date().toISOString();
+    pos.exit.lastPartialReason = reason;
+
     await this.save(data);
   }
 }

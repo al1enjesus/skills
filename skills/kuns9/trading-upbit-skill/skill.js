@@ -10,12 +10,14 @@
  *   node skill.js smoke_test
  *
  * Config:
- *   - requires ./config.json (see config.example.json)
+ *   - secrets via env (recommended): UPBIT_OPEN_API_ACCESS_KEY / UPBIT_OPEN_API_SECRET_KEY
+ *   - config.json is optional; non-secret defaults can come from config.example.json
  */
 
 const { Logger } = require('./scripts/execution/upbitClient');
 const { loadConfig } = require('./scripts/config');
 const { ensureResources } = require('./scripts/state/resources');
+const { securityCheck } = require('./scripts/security/securityCheck');
 
 function printHelp() {
   console.log(`Usage: node skill.js <command>
@@ -52,6 +54,12 @@ async function smokeTest() {
 
 async function main() {
   const cmd = process.argv[2];
+
+  if (cmd === 'security_check') {
+    const result = securityCheck();
+    console.log(JSON.stringify(result, null, 2));
+    process.exit(result.ok ? 0 : 2);
+  }
   if (!cmd || cmd === '-h' || cmd === '--help') {
     printHelp();
     process.exit(0);

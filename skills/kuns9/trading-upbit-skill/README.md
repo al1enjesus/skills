@@ -2,6 +2,37 @@
 
 Upbit automated trading skill designed for OpenClaw cron operation.
 
+
+## What to consider before installing (Security)
+
+This skill implements an automated Upbit trading bot and requires Upbit API keys. Before installing or handing over production keys:
+
+1) **Inspect critical files**:
+   - `scripts/execution/upbitClient.js` (Upbit HTTP client)
+   - `scripts/config/index.js` (config + secrets loading)
+   - `skill.js` (CLI entrypoint)
+
+2) **Run in dry-run mode first**:
+   - Set `execution.dryRun=true`
+   - Run `node skill.js smoke_test`, `node skill.js monitor_once`, `node skill.js worker_once`
+
+3) **Use the platform secret store**:
+   - Provide keys via environment variables (OpenClaw Skills Config / secret store):
+     - `UPBIT_OPEN_API_ACCESS_KEY`
+     - `UPBIT_OPEN_API_SECRET_KEY`
+   - Avoid storing secrets in `config.json`.
+
+4) **Limit key permissions during testing**:
+   - Use minimal funds / a test account where possible.
+   - Monitor your Upbit account activity closely.
+
+5) **Quick self-check**:
+   - Run `node skill.js security_check` to scan the repository for hard-coded external URLs (allowlist: `api.upbit.com`).
+
+Security notes:
+- This skill **does not include telemetry** and **does not upload data** by design.
+- The Upbit API base URL is **allowlisted** to `https://api.upbit.com/v1` and redirects are disabled.
+
 ## Install
 
 ```bash

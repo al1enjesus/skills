@@ -8,10 +8,24 @@ const { Logger } = require('./upbitClient');
 const riskManager = require('../risk/riskManager');
 const positionsRepo = require('../state/positionsRepo');
 
+function getLastActionTsForMarket(positions, market) {
+    let maxTs = 0;
+    for (const p of (positions || [])) {
+        if (p.market !== market) continue;
+        const times = [p?.entry?.openedAt, p?.entry?.createdAt, p?.exit?.closedAt, p?.exit?.triggeredAt].filter(Boolean);
+        for (const t of times) {
+            const ts = new Date(t).getTime();
+            if (Number.isFinite(ts) && ts > maxTs) maxTs = ts;
+        }
+    }
+    return maxTs;
+}
+
 class TradeExecutor {
     constructor(orderService, opts = {}) {
         this.orderService = orderService;
         this.dryRun = !!opts.dryRun;
+        this.reentryCooldownMs = Number(opts.reentryCooldownMs || 0);
     }
 
     async execute(event) {
@@ -31,6 +45,16 @@ class TradeExecutor {
                 Logger.warn(`[EXECUTOR] skip duplicate position market=${event.market}`);
                 return { ok: false, disposition: 'SKIP', reason: 'DUPLICATE_POSITION' };
             }
+            // Re-entry cooldown guard (defense-in-depth)
+            if (this.reentryCooldownMs > 0) {
+                const lastTs = getLastActionTsForMarket(data.positions, event.market);
+                const nowTs = Date.now();
+                if (lastTs > 0 && (nowTs - lastTs) < this.reentryCooldownMs) {
+                    Logger.warn(`[EXECUTOR] skip cooldown market=${event.market} ageMs=${nowTs - lastTs} < cooldownMs=${this.reentryCooldownMs}`);
+                    return { ok: false, disposition: 'SKIP', reason: 'REENTRY_COOLDOWN' };
+                }
+            }
+
 
             const pending = await positionsRepo.createEntryPending(event.market, event.meta?.strategy || 'unknown', riskResult.budgetKRW);
 
@@ -46,16 +70,25 @@ class TradeExecutor {
             return { ok: true, disposition: 'DONE', action: 'BUY', uuid: orderResult.uuid };
         }
 
-        if (event.type === 'TARGET_HIT' || event.type === 'STOPLOSS_HIT' || event.type === 'TRAILING_STOP_HIT' || event.type === 'TAKEPROFIT_HARD') {
-            await positionsRepo.updateToExitPending(event.market, event.type);
+        if (event.type === 'TARGET_HIT' || event.type === 'STOPLOSS_HIT' || event.type === 'TRAILING_STOP_HIT' || event.type === 'TAKEPROFIT_HARD' || event.type === 'SELL_PRESSURE_HIT') {
+            const isPartial = (event.type === 'SELL_PRESSURE_HIT') && Number(riskResult?.ratio || 1) < 1;
+
+            if (!isPartial) {
+                await positionsRepo.updateToExitPending(event.market, event.type);
+            }
 
             const orderResult = this.dryRun
                 ? { uuid: `dry_sell_${Date.now()}`, market: event.market, volume: riskResult.volume }
                 : await this.orderService.placeMarketSell(event.market, riskResult.volume);
 
             Logger.info(this.dryRun
-                ? `[EXECUTOR] DRYRUN sell uuid=${orderResult.uuid}`
-                : `[EXECUTOR] sell placed uuid=${orderResult.uuid}`);
+                ? `[EXECUTOR] DRYRUN sell uuid=${orderResult.uuid} volume=${riskResult.volume}${isPartial ? ` ratio=${riskResult.ratio}` : ''}`
+                : `[EXECUTOR] sell placed uuid=${orderResult.uuid} volume=${riskResult.volume}${isPartial ? ` ratio=${riskResult.ratio}` : ''}`);
+
+            if (isPartial) {
+                await positionsRepo.recordPartialExit(event.market, orderResult, event.type, riskResult.ratio, { meta: event.meta || null });
+                return { ok: true, disposition: 'DONE_PARTIAL', action: 'SELL_PARTIAL', uuid: orderResult.uuid, ratio: riskResult.ratio };
+            }
 
             await positionsRepo.updateToClosed(event.market, orderResult);
             return { ok: true, disposition: 'DONE', action: 'SELL', uuid: orderResult.uuid };

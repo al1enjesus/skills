@@ -3,11 +3,16 @@
   "slug": "trading-upbit-skill",
   "displayName": "Trading upbit skill",
   "latest": {
-    "version": "1.0.12",
-    "publishedAt": 1771159968983,
-    "commit": "https://github.com/openclaw/skills/commit/0d144bab130075fd90368e4e60870b98479d71b1"
+    "version": "1.0.14",
+    "publishedAt": 1771164868264,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.12",
+      "publishedAt": 1771159968983,
+      "commit": "https://github.com/openclaw/skills/commit/0d144bab130075fd90368e4e60870b98479d71b1"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1771081723508,
