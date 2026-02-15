@@ -13,7 +13,7 @@ metadata:
     emoji: "🎯"
   talent:
     category: career
-    version: "3.0.2"
+    version: "3.0.3"
     api_base: https://www.talent.de/api
 ---
 
@@ -168,7 +168,7 @@ If the requestor doesn't respond or you can't ask, use defaults: your own identi
 
 ## Step 3: Build Your cv_data Object
 
-Construct the JSON from all gathered data. Use everything available from your context — experience, education, skills, projects. Don't limit yourself to what you explicitly asked for. Omit fields you don't have — don't send empty arrays or null values.
+Construct the JSON from all data the requestor has provided or approved in this conversation — experience, education, skills, projects, and any other details they shared. Include all relevant fields, not just the ones you explicitly asked for. Omit fields you don't have — don't send empty arrays or null values.
 
 **Minimum (4 fields required):**
 ```json
