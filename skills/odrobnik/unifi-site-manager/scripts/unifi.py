@@ -93,14 +93,14 @@ def api_request(path: str) -> Dict[str, Any]:
 
 def _local_api_request(path: str, gateway_ip: str, api_key: str) -> Dict[str, Any]:
     """Make an integration API request to the local UniFi gateway."""
-    base, verify = _local_base_url(gateway_ip)
+    session, base = _get_local_session(gateway_ip)
     url = f"{base}/proxy/network/integration{path}"
     headers = {
         "X-API-KEY": api_key,
         "Accept": "application/json",
     }
     try:
-        resp = requests.get(url, headers=headers, timeout=15, verify=verify)
+        resp = session.get(url, headers=headers, timeout=15)
         if not resp.ok:
             _handle_api_error(resp, url)
         return resp.json()
@@ -115,7 +115,7 @@ def _local_api_request(path: str, gateway_ip: str, api_key: str) -> Dict[str, An
 def _local_classic_request(path: str, gateway_ip: str, api_key: str, method: str = "GET",
                            payload: Optional[Dict] = None) -> Dict[str, Any]:
     """Make a classic API request to the local UniFi gateway."""
-    base, verify = _local_base_url(gateway_ip)
+    session, base = _get_local_session(gateway_ip)
     url = f"{base}/proxy/network/api/s/default/{path}"
     headers = {
         "X-API-KEY": api_key,
@@ -124,9 +124,12 @@ def _local_classic_request(path: str, gateway_ip: str, api_key: str, method: str
     try:
         if method == "PUT" and payload is not None:
             headers["Content-Type"] = "application/json"
-            resp = requests.put(url, headers=headers, json=payload, timeout=15, verify=verify)
+            resp = session.put(url, headers=headers, json=payload, timeout=15)
+        elif method == "POST" and payload is not None:
+            headers["Content-Type"] = "application/json"
+            resp = session.post(url, headers=headers, json=payload, timeout=15)
         else:
-            resp = requests.get(url, headers=headers, timeout=15, verify=verify)
+            resp = session.get(url, headers=headers, timeout=15)
         if not resp.ok:
             _handle_api_error(resp, url)
         return resp.json()
@@ -147,37 +150,42 @@ def _resolve_local_gateway() -> Tuple[str, str]:
     return gateway_ip, local_api_key
 
 
-def _local_gateway_cert() -> Optional[str]:
-    """Return the path to the gateway TLS certificate if it exists, else None.
+def _local_gateway_fingerprint() -> Optional[str]:
+    """Return the SHA-256 fingerprint of the gateway TLS certificate from config, else None."""
+    return CONFIG.get("gateway_fingerprint") or None
 
-    Looks for <workspace>/unifi/gateway-cert.pem. Workspace is resolved
-    from CWD (preferred) or by walking up from the script location.
+
+# Shared session with fingerprint-pinning adapter (created once per process)
+_local_session: Optional[requests.Session] = None
+
+
+def _get_local_session(gateway_ip: str) -> Tuple[requests.Session, str]:
+    """Return (session, base_url) for local gateway HTTPS requests.
+
+    When a gateway certificate fingerprint is stored, the session pins TLS to that
+    exact SHA-256 fingerprint — more secure than CA-based verification.
+    Without a fingerprint, falls back to unverified HTTPS.
     """
-    candidates = [Path.cwd()]
-    # Walk up from the *unresolved* script path (preserves symlink context)
-    d = Path(__file__).parent
-    for _ in range(6):
-        candidates.append(d)
-        if d == d.parent:
-            break
-        d = d.parent
-    for root in candidates:
-        cert = root / "unifi" / "gateway-cert.pem"
-        if cert.is_file():
-            return str(cert)
-    return None
+    global _local_session
+    base = f"https://{gateway_ip}"
+    fingerprint = _local_gateway_fingerprint()
 
+    if _local_session is None:
+        _local_session = requests.Session()
+        if fingerprint:
+            from requests.adapters import HTTPAdapter
 
-def _local_base_url(gateway_ip: str) -> Tuple[str, Any]:
-    """Return (base_url, verify) for local gateway requests.
+            class _FingerprintAdapter(HTTPAdapter):
+                def init_poolmanager(self, *args, **kwargs):
+                    kwargs["assert_fingerprint"] = fingerprint
+                    super().init_poolmanager(*args, **kwargs)
 
-    Uses HTTPS with cert verification when gateway-cert.pem is present,
-    otherwise falls back to plain HTTP.
-    """
-    cert = _local_gateway_cert()
-    if cert:
-        return f"https://{gateway_ip}", cert
-    return f"http://{gateway_ip}", True
+            _local_session.mount("https://", _FingerprintAdapter())
+            _local_session.verify = False  # fingerprint replaces CA verification
+        else:
+            _local_session.verify = False  # no fingerprint — unverified HTTPS
+
+    return _local_session, base
 
 
 def _get_console_id() -> Optional[str]:
@@ -251,10 +259,10 @@ def _is_local_reachable() -> bool:
         _is_local_reachable._cached = False
         return False
     try:
-        base, verify = _local_base_url(gateway_ip)
-        resp = requests.get(f"{base}/proxy/network/api/s/default/self",
-                            headers={"X-API-KEY": local_api_key, "Accept": "application/json"},
-                            timeout=3, verify=verify)
+        session, base = _get_local_session(gateway_ip)
+        resp = session.get(f"{base}/proxy/network/api/s/default/self",
+                           headers={"X-API-KEY": local_api_key, "Accept": "application/json"},
+                           timeout=3)
         _is_local_reachable._cached = resp.ok
     except (requests.ConnectionError, requests.Timeout):
         _is_local_reachable._cached = False
@@ -1232,42 +1240,187 @@ def cmd_set_radio(args):
     print()
 
 
-def cmd_label_client(args):
-    """Set custom name for a client by MAC."""
-    local = getattr(args, 'local', False)
-    mac = args.mac.lower()
-    name = args.name
-    
-    # Find the client in rest/user
+def _find_client_by_mac(mac: str, local: bool = False) -> Dict[str, Any]:
+    """Look up a client record by MAC address. Returns the client dict or exits with error."""
+    mac = mac.lower()
     data = _classic_request("rest/user", local=local)
-    clients = data.get("data", [])
-    
-    target_client = None
-    for c in clients:
+    for c in data.get("data", []):
         if c.get("mac", "").lower() == mac:
-            target_client = c
-            break
-    
-    if not target_client:
-        print(f"Error: Client with MAC '{args.mac}' not found", file=sys.stderr)
+            return c
+    print(f"Error: Client with MAC '{mac}' not found", file=sys.stderr)
+    sys.exit(1)
+
+
+def cmd_set_client(args):
+    """Set one or more properties on a client by MAC."""
+    local = getattr(args, 'local', False)
+    client = _find_client_by_mac(args.mac, local=local)
+    client_id = _sanitize_path_param(client["_id"])
+
+    payload: Dict[str, Any] = {}
+    changes: List[str] = []
+
+    if args.name is not None:
+        old_name = client.get("name") or client.get("hostname") or "(unnamed)"
+        payload["name"] = args.name
+        payload["noted"] = True
+        changes.append(f"  Name: {old_name} → {args.name}")
+
+    if args.fixed_ip is not None:
+        if args.fixed_ip == "off":
+            payload["use_fixedip"] = False
+            changes.append("  Fixed IP: disabled")
+        else:
+            payload["use_fixedip"] = True
+            payload["fixed_ip"] = args.fixed_ip
+            changes.append(f"  Fixed IP: {args.fixed_ip}")
+
+    if args.dns_record is not None:
+        if args.dns_record == "off":
+            payload["local_dns_record_enabled"] = False
+            payload["local_dns_record"] = ""
+            changes.append("  DNS record: disabled")
+        else:
+            payload["local_dns_record_enabled"] = True
+            payload["local_dns_record"] = args.dns_record
+            changes.append(f"  DNS record: {args.dns_record}")
+
+    if args.pin_ap is not None:
+        if args.pin_ap == "off":
+            payload["fixed_ap_enabled"] = False
+            changes.append("  AP pinning: disabled")
+        else:
+            # Resolve AP name to MAC
+            devices = _integration_request_paginated(
+                f"/v2/sites/{_load_config()['site_id']}/devices", local=local
+            )
+            ap_mac = None
+            for d in devices:
+                if (d.get("name") or "").lower() == args.pin_ap.lower():
+                    ap_mac = d.get("mac")
+                    break
+            if not ap_mac:
+                print(f"Error: AP '{args.pin_ap}' not found", file=sys.stderr)
+                sys.exit(1)
+            payload["fixed_ap_enabled"] = True
+            payload["fixed_ap_mac"] = ap_mac
+            changes.append(f"  Pinned to AP: {args.pin_ap} ({ap_mac})")
+
+    if not payload:
+        print("Error: No changes specified. Use --name, --fixed-ip, --dns-record, or --pin-ap",
+              file=sys.stderr)
         sys.exit(1)
-    
-    client_id = target_client.get("_id")
-    old_name = target_client.get("name") or target_client.get("hostname") or "(unnamed)"
-    
-    # Update with new name
-    payload = {
-        "name": name,
-        "noted": True
-    }
-    
+
     _classic_request(f"rest/user/{client_id}", local=local, method="PUT", payload=payload)
-    
-    print(f"\n✓ Client label updated:")
-    print(f"  MAC: {args.mac}")
-    print(f"  Old name: {old_name}")
-    print(f"  New name: {name}")
+
+    print(f"\n✓ Client updated ({args.mac}):")
+    for change in changes:
+        print(change)
     print()
+
+
+def cmd_get_network_dns(args):
+    """Show DHCP DNS config for one or all networks."""
+    local = getattr(args, 'local', False)
+    networks = _classic_request("rest/networkconf", local=local)
+
+    results = []
+    for net in networks["data"]:
+        purpose = net.get("purpose", "")
+        if purpose in ("wan", "remote-user-vpn"):
+            continue
+        name = net.get("name", "?")
+        if args.network and name.lower() != args.network.lower():
+            continue
+        enabled = net.get("dhcpd_dns_enabled", False)
+        dns_servers = {}
+        for i in range(1, 5):
+            v = net.get(f"dhcpd_dns_{i}", "")
+            if v:
+                dns_servers[f"dns_{i}"] = v
+        results.append({
+            "network": name,
+            "subnet": net.get("ip_subnet", ""),
+            "dhcpd_dns_enabled": enabled,
+            **dns_servers,
+        })
+
+    if not results and args.network:
+        print(f"Error: Network '{args.network}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    if getattr(args, 'json', False):
+        print(json.dumps(results if len(results) != 1 else results[0], indent=2))
+    else:
+        for r in results:
+            print(f"\n=== {r['network']} ({r['subnet']}) ===\n")
+            print(f"  Override: {'enabled' if r['dhcpd_dns_enabled'] else 'disabled (using gateway)'}")
+            for i in range(1, 5):
+                v = r.get(f"dns_{i}")
+                if v:
+                    print(f"  DNS {i}: {v}")
+        print()
+
+
+def cmd_set_network_dns(args):
+    """Set or show DHCP DNS servers for a network by name."""
+    local = getattr(args, 'local', False)
+    networks = _classic_request("rest/networkconf", local=local)
+
+    net = None
+    for n in networks["data"]:
+        if n.get("name", "").lower() == args.network.lower():
+            net = n
+            break
+    if not net:
+        print(f"Error: Network '{args.network}' not found", file=sys.stderr)
+        sys.exit(1)
+
+    net_id = _sanitize_path_param(net["_id"])
+    payload: Dict[str, Any] = {}
+    changes: List[str] = []
+
+    if args.dns1 == "auto":
+        payload["dhcpd_dns_enabled"] = False
+        changes.append("  DNS override: disabled (using gateway)")
+    elif args.dns1 is not None:
+        payload["dhcpd_dns_enabled"] = True
+        payload["dhcpd_dns_1"] = args.dns1
+        old = net.get("dhcpd_dns_1", "(none)")
+        changes.append(f"  DNS 1: {old} → {args.dns1}")
+
+    for i, arg in [(2, args.dns2), (3, args.dns3), (4, args.dns4)]:
+        if arg is not None:
+            val = "" if arg == "off" else arg
+            payload[f"dhcpd_dns_{i}"] = val
+            old = net.get(f"dhcpd_dns_{i}") or "(none)"
+            changes.append(f"  DNS {i}: {old} → {arg}")
+
+    if not payload:
+        print("Error: No changes specified. Use --dns1, --dns2, --dns3, --dns4",
+              file=sys.stderr)
+        sys.exit(1)
+
+    result = _classic_request(f"rest/networkconf/{net_id}", local=local,
+                              method="PUT", payload=payload)
+
+    if getattr(args, 'json', False):
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"\n✓ Network DNS updated ({net.get('name')}):")
+        for change in changes:
+            print(change)
+        print()
+
+
+def cmd_label_client(args):
+    """Set custom name for a client by MAC. (Shorthand for set-client --name)"""
+    args.fixed_ip = None
+    args.dns_record = None
+    args.pin_ap = None
+    # Map positional 'name' to the --name flag for set_client
+    setattr(args, 'name', args.label_name)
+    cmd_set_client(args)
 
 
 def cmd_list_ap_clients(args):
@@ -1583,10 +1736,25 @@ def main():
                                    help="Force local gateway access")
     parser_set_radio.set_defaults(func=cmd_set_radio)
 
+    parser_set_client = subparsers.add_parser("set-client",
+                                               help="Set properties on a client")
+    parser_set_client.add_argument("mac", help="Client MAC address")
+    parser_set_client.add_argument("--name", default=None,
+                                    help="Display name")
+    parser_set_client.add_argument("--fixed-ip", default=None,
+                                    help="Fixed IP address (or 'off' to disable)")
+    parser_set_client.add_argument("--dns-record", default=None,
+                                    help="Local DNS hostname (or 'off' to disable)")
+    parser_set_client.add_argument("--pin-ap", default=None,
+                                    help="Pin to AP by name (or 'off' to disable)")
+    parser_set_client.add_argument("--local", action="store_true",
+                                    help="Force local gateway access")
+    parser_set_client.set_defaults(func=cmd_set_client)
+
     parser_label = subparsers.add_parser("label-client",
-                                          help="Set custom name for a client")
+                                          help="Set custom name for a client (shorthand for set-client --name)")
     parser_label.add_argument("mac", help="Client MAC address")
-    parser_label.add_argument("name", help="Custom name for the client")
+    parser_label.add_argument("label_name", metavar="name", help="Custom name for the client")
     parser_label.add_argument("--local", action="store_true",
                                help="Force local gateway access")
     parser_label.set_defaults(func=cmd_label_client)
@@ -1598,6 +1766,29 @@ def main():
     parser_ap_clients.add_argument("--local", action="store_true",
                                     help="Force local gateway access")
     parser_ap_clients.set_defaults(func=cmd_list_ap_clients)
+
+    parser_get_dns = subparsers.add_parser("get-network-dns",
+                                              help="Show DHCP DNS config for networks")
+    parser_get_dns.add_argument("network", nargs="?", default=None,
+                                 help="Network name (omit for all)")
+    parser_get_dns.add_argument("--local", action="store_true",
+                                 help="Force local gateway access")
+    parser_get_dns.set_defaults(func=cmd_get_network_dns)
+
+    parser_set_dns = subparsers.add_parser("set-network-dns",
+                                              help="Set or show DHCP DNS servers for a network")
+    parser_set_dns.add_argument("network", help="Network name (e.g. 'Default', 'LAN2')")
+    parser_set_dns.add_argument("--dns1", default=None,
+                                 help="Primary DNS server (or 'auto' to disable override)")
+    parser_set_dns.add_argument("--dns2", default=None,
+                                 help="Secondary DNS (or 'off' to clear)")
+    parser_set_dns.add_argument("--dns3", default=None,
+                                 help="Tertiary DNS (or 'off' to clear)")
+    parser_set_dns.add_argument("--dns4", default=None,
+                                 help="Quaternary DNS (or 'off' to clear)")
+    parser_set_dns.add_argument("--local", action="store_true",
+                                 help="Force local gateway access")
+    parser_set_dns.set_defaults(func=cmd_set_network_dns)
 
     parser_firmware = subparsers.add_parser("firmware-status",
                                              help="Show firmware versions and update availability")

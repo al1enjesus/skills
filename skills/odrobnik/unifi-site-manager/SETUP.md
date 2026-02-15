@@ -36,20 +36,42 @@ Create `config.json` next to SKILL.md (gitignored). Start from `config.json.exam
 | `api_key` | Yes | Site Manager API key (cloud access) |
 | `gateway_ip` | No | Local gateway/console IP address |
 | `local_api_key` | No | Local gateway API key |
+| `gateway_fingerprint` | No | SHA-256 fingerprint of the gateway's TLS certificate |
 | `site_id` | No | Default site UUID (auto-detected if only one site) |
 
 Alternatively, use environment variables: `UNIFI_API_KEY`, `UNIFI_GATEWAY_IP`, `UNIFI_LOCAL_API_KEY`.
 
-## Local HTTPS (Optional)
+## Local HTTPS & Certificate Pinning
 
-By default, local gateway requests use plain HTTP. To enable HTTPS, export the gateway's self-signed certificate and place it in your workspace:
+Local gateway requests always use HTTPS. When `gateway_fingerprint` is configured, the connection is pinned to that exact certificate — more secure than CA-based verification and works with self-signed certificates.
+
+**Get your gateway's certificate fingerprint:**
 
 ```bash
 openssl s_client -connect 192.168.0.2:443 </dev/null 2>/dev/null \
-  | openssl x509 > unifi/gateway-cert.pem
+  | openssl x509 -noout -fingerprint -sha256
 ```
 
-The expected path is `<workspace>/unifi/gateway-cert.pem`. When this file is present, local requests use HTTPS with certificate verification. When absent, they fall back to HTTP.
+This outputs something like:
+
+```
+sha256 Fingerprint=FC:4B:F1:4D:FD:DD:F5:A4:B1:30:45:5E:5B:DA:D4:2E:...
+```
+
+Copy the fingerprint (everything after `=`) into `config.json`:
+
+```json
+{
+  "api_key": "YOUR_SITE_MANAGER_API_KEY",
+  "gateway_ip": "192.168.0.2",
+  "local_api_key": "YOUR_LOCAL_API_KEY",
+  "gateway_fingerprint": "FC:4B:F1:4D:..."
+}
+```
+
+Without a fingerprint, local requests still use HTTPS but without certificate verification.
+
+> **Note:** If the gateway's certificate changes (e.g. after a firmware update or reset), update the fingerprint in `config.json`.
 
 ## Cloud Connector Requirements
 

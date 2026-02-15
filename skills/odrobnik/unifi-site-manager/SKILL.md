@@ -1,6 +1,6 @@
 ---
-name: unifi
-version: 3.0.4
+name: unifi-site-manager
+version: 3.2.0
 homepage: https://github.com/odrobnik/unifi-skill
 description: Monitor and configure UniFi network infrastructure. Auto-routes between local gateway and cloud connector. Manage hosts, sites, devices, clients, WLANs, radios, firmware, and events.
 metadata:
@@ -68,6 +68,17 @@ python3 {baseDir}/scripts/unifi.py set-wlan --ssid Hogwarts \
   --bss-transition on \
   --pmf required \
   --band-steering prefer_5g
+```
+
+### Network DNS
+
+```bash
+python3 {baseDir}/scripts/unifi.py get-network-dns              # All networks
+python3 {baseDir}/scripts/unifi.py get-network-dns Default       # Specific network
+python3 {baseDir}/scripts/unifi.py set-network-dns Default \
+  --dns1 1.1.1.1 --dns2 1.0.0.1                                 # Set DNS servers
+python3 {baseDir}/scripts/unifi.py set-network-dns Default \
+  --dns1 auto                                                    # Disable override (use gateway)
 ```
 
 ### Radio Configuration
