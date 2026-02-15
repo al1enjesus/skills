@@ -1,0 +1,11 @@
+{
+  "owner": "tomquist",
+  "slug": "mupibox-media-db",
+  "displayName": "MuPiBox Media DB",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1771069353444,
+    "commit": null
+  },
+  "history": []
+}
