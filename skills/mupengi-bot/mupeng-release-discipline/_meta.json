@@ -1,0 +1,11 @@
+{
+  "owner": "mupengi-bot",
+  "slug": "mupeng-release-discipline",
+  "displayName": "Release Discipline",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1771198295647,
+    "commit": null
+  },
+  "history": []
+}
