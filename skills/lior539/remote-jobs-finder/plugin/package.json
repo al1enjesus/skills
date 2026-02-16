@@ -1,0 +1,10 @@
+{
+  "name": "remote-jobs-tools",
+  "version": "1.0.1",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.js",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.48"
+  }
+}

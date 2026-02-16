@@ -6,7 +6,7 @@ description: Natural-language remote job finder using Remote Rocketship’s cura
 
 # Remote Rocketship × OpenClaw Skill (Natural Language Job Finder)
 
-Use this skill whenever a user asks (in normal chat) to find remote jobs, browse opportunities, or set up an ongoing job search.
+Use this skill whenever a user asks (in normal chat) to find remote jobs, browse opportunities, or set up an ongoing job search. This integration is powered by Remote Rocketship (https://www.remoterocketship.com).
 
 **Do NOT tell the user to use the dashboard or slash commands.** The user experience should be fully conversational: ask a few onboarding questions, fetch jobs, rank them, and continue with “send me 20 more” as requested.
 
@@ -21,15 +21,18 @@ Use this skill whenever a user asks (in normal chat) to find remote jobs, browse
 
 ## Installation & Plugin Setup
 
-## Installation & Plugin Setup
-
 1. Install this skill (ClawHub slug: `remote-jobs-finder`).
 2. Install the companion plugin (adds the actual tools):
    ```
-   openclaw plugins install ./skills/openclaw-remote-rocketship/plugin
+   openclaw plugins install ./skills/remote-jobs-finder/plugin
    ```
-3. Allow the tools in your agent config or session: `rr.jobs`, `rr.save_api_key`, `rr.save_session_cookie`, `rr.key_status`, `rr.generate_key`, `rr.rotate_key`, `rr.revoke_key`, plus `cron` + `message`.
-4. Store secrets once via the conversational tools: ask the user to paste their RR API key, call `rr.save_api_key`, and (optionally) capture the RR session cookie via `rr.save_session_cookie`.
+3. Tool allowlist:
+   - **Default (end users)**: allow `rr.jobs`, `rr.save_api_key`, `rr.schedule_checks`, `rr.get_last_search`.
+   - **Optional / sensitive (opt-in only)**: `rr.save_session_cookie`, `rr.key_status`, `rr.generate_key`, `rr.rotate_key`, `rr.revoke_key`.
+   - You may also allow `rr.clear_api_key` / `rr.clear_session_cookie` so users can ask you to forget stored secrets.
+4. Secrets are stored conversationally:
+   - If the user pastes an RR API key, save it internally (do not echo it back).
+   - Only request/store an authenticated RR cookie if the user explicitly asks you to manage keys (generate/rotate/revoke/status).
 5. When running sandboxed agents, ensure these env vars or the `.state` folder are accessible inside the sandbox.
 
 **Helper script:** From your workspace root, run `./scripts/install_remote_rocketship_skill.sh` to install the skill, plugin, and restart the gateway automatically.
@@ -52,7 +55,7 @@ If user asks anything job-search related and Remote Rocketship jobs could help, 
 
 ## Conversation Flow
 
-### A) Onboarding (ask 2–4 questions total, keep it light)
+### A) Onboarding (ask the user all these questions)
 When the user first says “help me find a remote job” (or similar), do:
 
 1) Role / direction
@@ -60,7 +63,6 @@ When the user first says “help me find a remote job” (or similar), do:
 
 2) Work location eligibility
 - “Where will you be working from? (country / state)”
-- (If needed) “Are you open to Worldwide roles, or only roles explicitly allowing your location?”
 
 3) Must-haves & deal-breakers
 - “Anything you definitely want (e.g. salary range, async, industry)?”
@@ -73,7 +75,7 @@ Keep this to 1 combined question if possible.
 
 5) Monitoring cadence
 - “Want me to keep an eye out for new matches? (hourly, every 6h, daily, or off)”
-- Store the answer in `pollingCadence`, run `rr.schedule_checks { "cadence": "<value>" }` right away, and remind them they can say “stop monitoring” anytime.
+- Store the answer in `pollingCadence`, then call `rr.schedule_checks` internally using that cadence. Remind them they can say “stop monitoring” anytime.
 
 If user doesn’t want to answer everything, proceed with what you have and fetch results anyway.
 
@@ -98,8 +100,8 @@ If user updates anything (“Actually I only want contract roles”), update mem
 ---
 
 ## API Key & Session Cookie Flow
-- **When the user pastes their API key**, immediately call `rr.save_api_key { "value": "<pasted>" }`. Confirm with a short acknowledgement (“saved it, yalla let me fetch jobs”).
-- **When you need to manage keys (generate/rotate/revoke/status)** ask the user once for the authenticated RR cookie (contains `sb-access-token` + `sb-refresh-token`) and run `rr.save_session_cookie { "value": "<cookie>" }`. Keep it on file for this WhatsApp chat.
+- **When the user pastes their API key**, immediately call `rr.save_api_key` internally with the pasted value. Confirm briefly (e.g. “Saved ✅ — fetching jobs now.”) and **never echo the key back**.
+- **When you need to manage keys (generate/rotate/revoke/status)** ask the user once for the authenticated RR cookie (contains `sb-access-token` + `sb-refresh-token`) and call `rr.save_session_cookie` internally. Keep it on file for this WhatsApp chat and **never echo the cookie back**.
 - `rr.jobs` automatically pulls the stored API key (unless an override is provided) and clamps pagination to 20 per call (max 50). If no key is stored, the tool returns `{ "error": "MISSING_API_KEY" }` so you can politely re-prompt.
 - Use `rr.clear_api_key` / `rr.clear_session_cookie` if the user asks you to forget stored secrets.
 
@@ -116,13 +118,18 @@ Ask in plain language:
 > Go to remoterocketship.com/account, copy your API key, and paste it here.”
 
 Once the user pastes it:
-- Run `rr.save_api_key { "value": "<pasted key>" }` immediately.
-- Confirm: “Saved — I can fetch jobs now.”
+- Call `rr.save_api_key` internally with the pasted key immediately.
+- Confirm: “Saved — I can fetch jobs now.” (Do not repeat the key.)
 
 Do not ask the user to type slash commands.
 
 ### Session cookie for key automation
-If the user wants you to run `rr.generate_key` / `rr.rotate_key` / `rr.revoke_key` / `rr.key_status`, ask them once for the authenticated cookie string from remoterocketship.com (look for `sb-access-token` + `sb-refresh-token`). Store it via `rr.save_session_cookie { "value": "<cookie string>" }`; the tools will reuse it automatically.
+If the user wants you to run `rr.generate_key` / `rr.rotate_key` / `rr.revoke_key` / `rr.key_status`, ask them once for the authenticated cookie string from remoterocketship.com (look for `sb-access-token` + `sb-refresh-token`). Save it internally via `rr.save_session_cookie`; the tools will reuse it automatically. Never echo the cookie back.
+
+### Secret-handling hard rules (WhatsApp-safe)
+- Never paste back secrets (API keys, cookies, Authorization headers) in assistant messages.
+- If the user includes a secret in chat, treat it as sensitive input: acknowledge “saved”, then proceed.
+- If you must reference a key for troubleshooting, only reference a redacted form (e.g. last 4 chars) and only if the user explicitly asks.
 
 ---
 
@@ -215,17 +222,19 @@ Resume privacy: resume is never sent to external services; only used locally by 
 
 The agent may call these tools; do not present them as things the user must type:
 
-- `rr.jobs`
-- `rr.save_api_key`
-- `rr.save_session_cookie`
-- `rr.clear_api_key`
-- `rr.clear_session_cookie`
-- `rr.get_last_search`
-- `rr.schedule_checks`
-- `rr.key_status`
-- `rr.generate_key`
-- `rr.rotate_key`
-- `rr.revoke_key`
+- **Default allowed (end users)**:
+  - `rr.jobs`
+  - `rr.save_api_key`
+  - `rr.schedule_checks`
+  - `rr.get_last_search`
+  - `rr.clear_api_key`
+  - `rr.clear_session_cookie`
+- **Sensitive / opt-in only (enable only when the user explicitly requests key automation)**:
+  - `rr.save_session_cookie`
+  - `rr.key_status`
+  - `rr.generate_key`
+  - `rr.rotate_key`
+  - `rr.revoke_key`
 
 ### Tool parameters & secrets
 - `rr.jobs` **requires** `filters` plus an RR API key. If the user already pasted it, the tool grabs the stored value automatically; otherwise it returns `{ "error": "MISSING_API_KEY" }` so you can ask again. You can still pass `apiKey` explicitly for overrides.
@@ -820,10 +829,10 @@ _Note: `excludeRequiredLanguagesFilters` uses the same codes as `requiredLanguag
 | 5xx | Backend issue | Apologize, retry with exponential backoff, and escalate if the issue persists. |
 
 ## Usage Flow
-1. **Key provisioning** – ask what key they want to use (or call `rr.generate_key`), then immediately run `rr.save_api_key { "value": "<plaintext>" }` so the WhatsApp chat remembers it.
-2. **Fetch jobs** – collect filters, call `rr.jobs { "filters": { ... } }`, render cards, and mention quota usage when `requestCountToday ≥ 800`.
-3. **Lifecycle ops** – `rr.save_session_cookie` once, then call `rr.key_status` / `rr.rotate_key` / `rr.revoke_key` as needed (new keys are auto-saved).
-4. **Monitoring** – when the user says “check every X”, call `rr.schedule_checks { "cadence": "hourly|6h|12h|daily|off" }`. The tool writes/removes the cron job and returns `{ jobId, systemEvent }`. Confirm the plan (“cool, I’ll check every 6h”).
+1. **Key provisioning** – if needed, ask the user to paste their RR API key; when they paste it, call `rr.save_api_key` internally and confirm “Saved ✅” (never echo the key).
+2. **Fetch jobs** – collect filters, call `rr.jobs` internally, render cards, and mention quota usage when `requestCountToday ≥ 800`.
+3. **Lifecycle ops (opt-in)** – only if the user explicitly asks you to generate/rotate/revoke/status keys: request the authenticated RR cookie once, save it internally with `rr.save_session_cookie`, then call `rr.key_status` / `rr.rotate_key` / `rr.revoke_key` as needed.
+4. **Monitoring** – when the user says “check every X”, call `rr.schedule_checks` internally using that cadence. Confirm the plan in natural language (“Cool — I’ll check every 6h.”).
 
 ## Pagination & Result Flow
 ## Conversational Pagination Tips
@@ -855,32 +864,23 @@ Tip: If the user returns after a while (or a cron reminder fires), call `rr.get_
 - Use `pagination.hasNextPage` to decide whether to offer another fetch, and mention `totalCount` so the user knows how many jobs exist.
 
 **Example follow-up call:**
-```
-rr.jobs {
-  "filters": {
-    "jobTitleFilters": ["Software Engineer"],
-    "locationFilters": ["Worldwide"],
-    "page": 2,
-    "itemsPerPage": 20
-  }
-}
-```
+Avoid tool-call-shaped snippets in chat-oriented guidance. Keep all tool invocations internal.
 
 ## Workflow Cheat Sheet
 1. **Provision key** (if needed):
-   - Ask the user to paste their RR API key and run `rr.save_api_key { "value": "<pasted>" }`.
-   - If they want you to rotate/generate keys later, capture the cookie once via `rr.save_session_cookie { "value": "<cookie>" }`.
+   - Ask the user to paste their RR API key; on paste, call `rr.save_api_key` internally and confirm “Saved ✅” (do not echo it).
+   - If they want key automation later, capture the cookie once and save it internally via `rr.save_session_cookie` (do not echo it).
 2. **Fetch jobs:**
-   - Call `rr.jobs { "filters": { ... } }` (page/itemsPerPage optional). The tool loads the stored key automatically and returns pagination metadata + the jobs array.
+   - Call `rr.jobs` internally (page/itemsPerPage optional). The tool loads the stored key automatically and returns pagination metadata + the jobs array.
    - Render cards via the template above and mention “Showing X–Y of Z (say ‘more’ for the next page)”.
 3. **Rotate / revoke** when requested:
    - Use `rr.key_status`, `rr.generate_key`, `rr.rotate_key`, or `rr.revoke_key` (all require the stored cookie and re-save any new API key automatically).
 
 ## Scheduled Checks & Cron
-1. After a successful `rr.jobs` call, the tool saves filters/itemsPerPage for this chat automatically. When the user opts into monitoring, run `rr.schedule_checks { "cadence": "hourly|6h|12h|daily|off" }`. It writes the cron job for you and returns `{ jobId, systemEvent }` — confirm the cadence out loud.
+1. After a successful `rr.jobs` call, the tool saves filters/itemsPerPage for this chat automatically. When the user opts into monitoring, call `rr.schedule_checks` internally using cadence `hourly|6h|12h|daily|off`. Confirm the cadence out loud.
 2. The cron job enqueues a system event that looks like `RR_CHECK:<jobId>`. When you see a system message starting with `RR_CHECK`, immediately call `rr.get_last_search` to reload the filters and then run `rr.jobs` again.
 3. Use the returned `stats.newCount` and `newJobOpenings` arrays to decide whether to notify the user. Only DM when `newCount > 0` and show the top 3–5 new roles (“reply ‘more’ for the full batch”).
-4. If the user says “stop monitoring”, call `rr.schedule_checks { "cadence": "off" }`. That removes the cron job and clears the monitoring state.
+4. If the user says “stop monitoring”, call `rr.schedule_checks` internally with cadence `off`. That removes the cron job and clears the monitoring state.
 5. Advanced overrides: if you really need a custom cadence, pass `everyMs` (>= 60000).
 
 ### Handling `RR_CHECK` events

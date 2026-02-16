@@ -2,5 +2,10 @@
   "id": "remote-jobs-tools",
   "name": "Remote Rocketship Tools",
   "description": "Agent tools for Remote Rocketship API key management and job searches.",
-  "version": "1.0.0"
+  "version": "1.0.1",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
 }
