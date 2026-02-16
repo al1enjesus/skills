@@ -3,11 +3,16 @@
   "slug": "polymarket-fast-loop",
   "displayName": "Polymarket Fast Loop",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1771095103365,
-    "commit": "https://github.com/openclaw/skills/commit/e165329d5a2bd41efa3841f4c25802eb2b1596ff"
+    "version": "1.0.7",
+    "publishedAt": 1771232549697,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1771095103365,
+      "commit": "https://github.com/openclaw/skills/commit/e165329d5a2bd41efa3841f4c25802eb2b1596ff"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1771076618259,
