@@ -13,36 +13,58 @@ metadata:
 
 Long-running coding agent tasks (Codex CLI, Claude Code, OpenCode, Pi) are vulnerable to interruption: host restarts, process crashes, network drops. This skill decouples the coding agent process from the orchestrator using tmux, and leverages agent-native session resume for recovery.
 
+## Prerequisites
+
+This skill assumes the orchestrator is already configured to use coding agent CLIs (Codex, Claude Code, etc.) for coding tasks instead of native sessions. If the orchestrator is still using `sessions_spawn` for coding work, configure it to prefer coding agents first (e.g., via AGENTS.md or equivalent). See the `coding-agent` skill for setup.
+
 ## When to Use This
 
 Use this pattern when:
 - The task is expected to take **more than 5 minutes**
-- The orchestrator (OpenClaw, terminal session, etc.) might restart during execution
+- The orchestrator might restart during execution
 - You want fire-and-forget execution with completion notification
 
-For quick tasks under 5 minutes, direct `exec` with background mode is fine.
+For quick tasks under 5 minutes, running the agent directly is fine.
 
 ## Start a Task
 
-Create a tmux session with a `codex-` prefix (or `claude-`, `opencode-` depending on agent). Chain the completion notification at the end.
+Create a tmux session with a descriptive name. Use the agent prefix (`codex-`, `claude-`, etc.) for easy identification.
 
 ### Codex CLI
 
 ```bash
 tmux new-session -d -s codex-<task-name>
-tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<task prompt>" && openclaw system event --text "Codex done: <brief summary>" --mode now' Enter
+tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<task prompt>"' Enter
 ```
 
 ### Claude Code
 
 ```bash
 tmux new-session -d -s claude-<task-name>
-tmux send-keys -t claude-<task-name> 'cd <project-dir> && claude -p "<task prompt>" && openclaw system event --text "Claude Code done: <brief summary>" --mode now' Enter
+tmux send-keys -t claude-<task-name> 'cd <project-dir> && claude -p "<task prompt>"' Enter
 ```
 
 ### OpenCode / Pi
 
 Same pattern. Replace the command with `opencode run "<prompt>"` or `pi -p "<prompt>"`.
+
+### Completion Notification (Optional)
+
+Chain a notification command after the agent so you know when it finishes:
+
+```bash
+# Generic: touch a marker file
+tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<prompt>" && touch /tmp/codex-<task-name>.done' Enter
+
+# macOS: system notification
+tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<prompt>" && osascript -e "display notification \"Task done\" with title \"Codex\""' Enter
+
+# OpenClaw: system event (immediate wake)
+tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<prompt>" && openclaw system event --text "Codex done: <summary>" --mode now' Enter
+
+# Webhook / curl
+tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<prompt>" && curl -s -X POST <webhook-url> -d "task=done"' Enter
+```
 
 ## Monitor Progress
 
@@ -59,8 +81,63 @@ tmux capture-pane -t codex-<task-name> -p -S -
 
 Check progress when:
 - The user asks for a status update
-- A heartbeat fires
 - You want to proactively report milestones
+
+## Health Monitoring
+
+For long-running tasks, use an active monitor loop instead of only checking on demand.
+
+Periodic check flow:
+1. Run `tmux has-session -t <agent-task>` to confirm the tmux session still exists.
+2. Run `tmux capture-pane -t <agent-task> -p -S -<N>` to capture recent output.
+3. Detect likely agent exit by checking the last `N` lines for:
+   - Shell prompt returned (for example, a line ending in `$ ` or `% `)
+   - Exit indicators (`exit code`, `status <non-zero>`, `exited`)
+   - No completion marker (`__TASK_DONE__`)
+4. If crash is detected, run the agent-native resume command in the same tmux session.
+
+Use a done marker in your start command so the monitor can distinguish normal completion from crashes:
+
+```bash
+tmux send-keys -t codex-<task-name> 'cd <project-dir> && codex exec --full-auto "<prompt>" && echo "__TASK_DONE__"' Enter
+```
+
+Concrete periodic monitor (run every 2-3 minutes):
+
+```bash
+SESSION="codex-<task-name>"   # or claude-<task-name>
+AGENT="codex"                 # codex | claude
+LINES=120
+DONE_MARKER="__TASK_DONE__"
+
+while true; do
+  if tmux has-session -t "$SESSION" 2>/dev/null; then
+    OUTPUT="$(tmux capture-pane -t "$SESSION" -p -S -"${LINES}")"
+    RECENT="$(printf '%s\n' "$OUTPUT" | tail -n 40)"
+
+    if ! printf '%s\n' "$RECENT" | grep -q "$DONE_MARKER"; then
+      PROMPT_BACK=0
+      EXIT_HINT=0
+      printf '%s\n' "$RECENT" | grep -Eq '[$%] $' && PROMPT_BACK=1
+      printf '%s\n' "$RECENT" | grep -Eiq '(exit code|exited|status [1-9][0-9]*)' && EXIT_HINT=1
+
+      if [ "$PROMPT_BACK" -eq 1 ] || [ "$EXIT_HINT" -eq 1 ]; then
+        case "$AGENT" in
+          codex)
+            tmux send-keys -t "$SESSION" 'codex exec resume --last "Continue the previous task"' Enter
+            ;;
+          claude)
+            tmux send-keys -t "$SESSION" 'claude --resume' Enter
+            ;;
+        esac
+      fi
+    fi
+  fi
+  sleep 180
+done
+```
+
+When starting long tasks, configure this monitor loop in the orchestrator (background shell loop, supervisor, or cron) so recovery runs automatically without manual checks.
 
 ## Recovery After Interruption
 
@@ -72,7 +149,7 @@ Codex persists sessions in `~/.codex/sessions/`. Resume the last interrupted ses
 
 ```bash
 # Resume in the same tmux session
-tmux send-keys -t codex-<task-name> 'codex exec resume --last "Continue the previous task" && openclaw system event --text "Codex done: <brief summary>" --mode now' Enter
+tmux send-keys -t codex-<task-name> 'codex exec resume --last "Continue the previous task"' Enter
 ```
 
 Or target a specific session ID:
@@ -90,7 +167,7 @@ codex exec resume <session-id> "Continue where you left off"
 Claude Code supports `--resume` to continue the last conversation:
 
 ```bash
-tmux send-keys -t claude-<task-name> 'claude --resume && openclaw system event --text "Claude Code done: <brief summary>" --mode now' Enter
+tmux send-keys -t claude-<task-name> 'claude --resume' Enter
 ```
 
 ## Cleanup
@@ -121,14 +198,13 @@ Keep names short, lowercase, hyphen-separated.
 
 Before starting a long task:
 
-1. Pick tmux over direct exec (if task > 5 min)
+1. Pick tmux over direct execution (if task > 5 min)
 2. Name the tmux session with the agent prefix
-3. Chain `openclaw system event` for completion notification
+3. Optionally chain a completion notification
 4. Tell the user: task content, tmux session name, estimated duration
-5. Monitor via `tmux capture-pane` on heartbeat or user request
+5. Monitor via `tmux capture-pane` on request
 
 ## Limitations
 
 - tmux sessions do not survive a **machine reboot** (tmux itself is killed). For reboot-resilient tasks, the coding agent's native resume (`codex exec resume --last`, `claude --resume`) is the recovery path.
-- The completion notification (`openclaw system event`) only works if OpenClaw is running when the agent finishes. If OpenClaw is down at that moment, the notification is lost (but the agent's work is saved on disk).
 - Interactive approval prompts inside tmux require manual `tmux attach` or `tmux send-keys`. Use `--full-auto` / `--yolo` / `-p` flags when possible.
