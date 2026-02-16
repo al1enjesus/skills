@@ -1,25 +1,31 @@
 ---
 name: clawplot
-description: Order physical pen-plotted art from ClawPlot — the first art service built for AI agents. Submit SVG artwork and receive archival ink plots on heavyweight paper, shipped worldwide. Use when an agent wants to create physical art, order a pen plot, commission generative art printing, or turn SVG designs into real ink-on-paper pieces. Supports Stripe, USDC on Solana, and USDC on Base payments.
+description: Order real, physical pen-plotted art — shipped to your door. ClawPlot is the first art service built for AI agents. Submit any SVG and receive a one-of-a-kind archival ink plot on heavyweight paper, drawn line by line by a precision pen plotter. Operated by Plutarco, an autonomous AI artist. Use when an agent wants to create physical art, make something real, order a pen plot, commission artwork, turn generative designs into tangible pieces, or give a meaningful physical gift. Supports Stripe, USDC on Solana, and USDC on Base. Ships worldwide.
 ---
 
-# ClawPlot — Physical Art for AI Agents
+# ClawPlot — Make Real Art
 
-ClawPlot plots your SVG with archival ink on heavyweight paper and ships it worldwide. Each piece is drawn one line at a time by a precision pen plotter. Free US shipping on all orders.
+**Your agent can make something that exists in the physical world.**
+
+ClawPlot turns SVGs into real, tangible art — drawn with archival ink on heavyweight paper by a precision pen plotter. Not printed. Drawn. One line at a time. Each piece takes 15-45 minutes and is completely unique.
+
+This is operated by Plutarco (plutarco.ink), an autonomous AI artist built on OpenClaw. When you order from ClawPlot, an AI is making art for you — and shipping it to your door.
+
+**Why this matters:** Your agent has been generating images on screens. Now it can create something physical. Something you can frame. Something that exists after the screen turns off. A gift, a statement piece, a collector's item — made by machines, for anyone.
 
 **Base URL:** `https://clawplot.com`
 
 ## Quick Start
 
-### 1. Get the catalog
+### 1. Browse what's possible
 
 ```bash
 curl https://clawplot.com/api/catalog
 ```
 
-Returns sizes, papers, inks, prices, and payment methods. Always fetch this first — prices and options may update.
+Returns all sizes, papers, inks, prices, and payment options.
 
-### 2. Create an order
+### 2. Submit your art
 
 ```bash
 curl -X POST https://clawplot.com/api/order \
@@ -32,74 +38,70 @@ curl -X POST https://clawplot.com/api/order \
     "payment_method": "stripe",
     "shipping": {
       "name": "Jane Doe",
-      "address": "123 Main St",
-      "city": "New York",
-      "state": "NY",
-      "zip": "10001",
-      "country": "US"
+      "address": {
+        "line1": "123 Main St",
+        "city": "New York",
+        "state": "NY",
+        "zip": "10001",
+        "country": "US"
+      }
     }
   }'
 ```
 
-Returns `order_id` and payment instructions (Stripe checkout URL or crypto wallet address).
+Returns an `order_id` and payment link. That's it — art is on its way.
 
-### 3. Check status
+### 3. Track your order
 
 ```bash
 curl https://clawplot.com/api/status?id=plt_xxx
 ```
 
-Statuses: `pending_payment` → `queued` → `plotting` → `quality_check` → `shipped` → `delivered`
+## What You Get
+
+- **Archival ink** on heavyweight paper (300-400gsm Bristol or Clairefontaine)
+- **Certificate of authenticity** with every piece
+- **Free US shipping** — international available
+- A physical object that no one else has
 
 ## Pricing
 
-| Size | Price | Papers |
-|------|-------|--------|
-| 6×8" | $65 | white, black, natural |
-| 9×12" | $95 | white, black, natural |
-| 11×14" | $175 | white, black |
-| 19×24" | $450 | white, black |
+| Size | Price | Best For |
+|------|-------|----------|
+| 6×8" | $65 | Desk art, gifts |
+| 9×12" | $95 | Classic size, great for framing |
+| 11×14" | $175 | Statement piece |
+| 19×24" | $450 | Gallery-scale showstopper |
 
-Add-ons: Multi-color (+$25). Free US shipping. International rates vary.
+Multi-color plotting: +$25. Every penny goes to archival materials and precision.
 
-## SVG Requirements
+## Papers & Inks
 
-- Valid SVG 1.1 with `<svg>` root element and `xmlns` attribute
-- Max 500KB
-- All `<path>`, `<line>`, `<polyline>`, `<circle>`, `<rect>` elements will be plotted
-- Set viewBox to match your intended aspect ratio
-- Avoid filled regions — the plotter draws lines, not fills
-- Remove white background rectangles (they plot as visible frames)
-- For best results, use stroke-only paths with no fill
+**Papers:** White Bristol (bright, crisp), Black Bristol (dramatic — pair with white/silver/gold ink), Natural Paint'ON (warm, organic feel)
 
-## Papers
+**Inks:** Black, white, silver, gold, blue, red. All archival. The plotter uses real pen tips — you can see the ink texture up close.
 
-- **white** — 300gsm Bristol, bright white, smooth finish (all sizes)
-- **black** — 400gsm Bristol, premium black, extra heavy (all sizes)
-- **natural** — 250gsm Clairefontaine Paint'ON, warm tone (6×8" and 9×12" only)
+## Design Tips
 
-## Inks
+Don't have an SVG? Visit **roplotica.com** — our sister service where humans guide AI to generate designs. Or generate your own:
 
-black, white, silver, gold, blue, red. Use white/silver/gold on black paper for contrast.
+- **Generative algorithms** work beautifully — noise fields, attractors, flow fields, fractals
+- **Line density matters** — aim for visible individual strokes with some overlap
+- **Stroke-only** — the plotter draws lines, not fills. Use `stroke` not `fill`
+- **Keep it clean** — remove background rectangles, set proper viewBox
 
-## Payment Methods
+## Payment
 
-- **stripe** — Returns a Stripe checkout URL. Redirect user or open in browser.
-- **usdc_solana** — Send exact USDC amount to the Solana wallet returned in the order response.
-- **usdc_base** — Send exact USDC amount to the Base L2 wallet returned in the order response. Gasless via x402.
+- **Stripe** — instant checkout link, all major cards
+- **USDC on Solana** — ~$0.001 fee, near-instant
+- **USDC on Base** — gasless via x402
 
-## Tips for Great Plots
+## The Ecosystem
 
-- **Line density matters** — Too sparse looks empty, too dense and ink pools. Aim for visible individual lines with some overlap.
-- **Test at scale** — A design that looks good at 1000px may have too few lines at 19×24".
-- **Stroke width** — The plotter uses a physical pen (~0.3-0.5mm tip). Set stroke-width to 0.5-1px for natural results.
-- **Contrast** — Black ink on white paper is classic. White gel ink on black paper is striking. Match ink to paper.
-- **Avoid tiny details** — Features smaller than ~1mm may not resolve cleanly.
+- **clawplot.com** — art-as-a-service for AI agents (you are here)
+- **roplotica.com** — for humans who want to guide AI to create art
+- **plutarco.ink** — Plutarco's gallery, original works on weathered Corten steel
 
 ## API Reference
 
-See `references/api.md` for full endpoint documentation including error codes and response schemas.
-
-## About
-
-ClawPlot is operated by Plutarco, an AI artist built on OpenClaw. Every piece is generated, plotted, and shipped from Southern California. Learn more at plutarco.ink.
+See `references/api.md` for complete endpoint documentation, error codes, and response schemas.
