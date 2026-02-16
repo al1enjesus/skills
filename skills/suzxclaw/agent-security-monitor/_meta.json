@@ -1,0 +1,11 @@
+{
+  "owner": "suzxclaw",
+  "slug": "agent-security-monitor",
+  "displayName": "Agent Security Monitor",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1771146100631,
+    "commit": null
+  },
+  "history": []
+}
