@@ -3,11 +3,16 @@
   "slug": "leak",
   "displayName": "Leak",
   "latest": {
-    "version": "2026.2.15",
-    "publishedAt": 1771116575008,
-    "commit": "https://github.com/openclaw/skills/commit/52a3aab28472d6bd414e6da19c34d85917f1ea27"
+    "version": "2026.2.16",
+    "publishedAt": 1771203223379,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2026.2.15",
+      "publishedAt": 1771116575008,
+      "commit": "https://github.com/openclaw/skills/commit/52a3aab28472d6bd414e6da19c34d85917f1ea27"
+    },
     {
       "version": "2026.2.15-beta.1",
       "publishedAt": 1771064066127,
