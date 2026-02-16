@@ -1,0 +1,11 @@
+{
+  "owner": "rvacyber",
+  "slug": "openclaw-protonmail",
+  "displayName": "ProtonMail via Proton Mail Bridge",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1771264341269,
+    "commit": null
+  },
+  "history": []
+}
