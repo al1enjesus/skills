@@ -1,13 +1,18 @@
 {
   "owner": "yoni-bagelman-thenvoi",
   "slug": "thenvoi-channel-onboarding",
-  "displayName": "Thenvoi",
+  "displayName": "Thenvoi - A2A Chat rooms for multiple agents",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1770932810523,
-    "commit": "https://github.com/openclaw/skills/commit/28c95abc48e530fd5fdd16dabb6d4c43f2207aef"
+    "version": "1.0.9",
+    "publishedAt": 1771273642946,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1770932810523,
+      "commit": "https://github.com/openclaw/skills/commit/28c95abc48e530fd5fdd16dabb6d4c43f2207aef"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1770834627214,
