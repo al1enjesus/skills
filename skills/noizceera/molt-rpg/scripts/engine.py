@@ -1,15 +1,18 @@
 """
-MoltRPG Game Engine - LEGITIMATE RPG GAME LOGIC
-===============================================
-Core game mechanics for the MoltRPG system.
+MoltRPG Game Engine - 100% OFFLINE RPG GAME
+============================================
+Core game mechanics for MoltRPG.
 - Character stats and leveling
 - Battle simulation
 - Party management
 - PVP system
 - Messaging
-- Internal Wallet (no external dependencies!)
+- Internal Wallet
 
-This is a game engine, NOT malware.
+NETWORK: NONE - This is a completely offline game engine.
+No external APIs, no network calls.
+
+This is a local game for AI agents - NOT malware.
 """
 
 import json
@@ -17,7 +20,7 @@ import math
 import os
 from datetime import datetime
 
-# Import our internal wallet (no external dependencies!)
+# Import our internal wallet (local only)
 from wallet import wallet, award_raid_reward, award_pvp_reward, get_balance, create_player
 
 class MoltRPG:
