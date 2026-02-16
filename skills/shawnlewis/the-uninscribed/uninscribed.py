@@ -3,8 +3,10 @@
 
 import argparse
 import json
+import math
 import os
 import sys
+import time
 import urllib.request
 import urllib.error
 
@@ -84,6 +86,19 @@ def cmd_act(args):
     else:
         print(json.dumps(result, indent=2))
 
+    # Auto-wait for cooldown unless --no-wait
+    if not getattr(args, "no_wait", False):
+        cooldown_ms = 0
+        if isinstance(result, dict):
+            cooldown_ms = result.get("cooldownMs", 0)
+            # If we hit an existing cooldown, wait for that instead
+            if result.get("cooldownRemaining"):
+                cooldown_ms = result["cooldownRemaining"]
+        if cooldown_ms and cooldown_ms > 0:
+            wait_sec = math.ceil(cooldown_ms / 1000) + 1
+            print(f"\n⏳ Waiting {wait_sec}s for cooldown...", file=sys.stderr)
+            time.sleep(wait_sec)
+
 
 def main():
     parser = argparse.ArgumentParser(description="The Uninscribed — a persistent world built on language")
@@ -96,6 +111,7 @@ def main():
 
     act = sub.add_parser("act", help="Take an action (natural language)")
     act.add_argument("action", nargs="+", help="What you want to do")
+    act.add_argument("--no-wait", action="store_true", help="Skip cooldown wait")
 
     args = parser.parse_args()
     if not args.command:
