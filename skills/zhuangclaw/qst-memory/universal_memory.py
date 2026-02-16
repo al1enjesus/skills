@@ -302,6 +302,8 @@ def main():
     doing_p.add_argument('--task', '-t', help='Task description (for start)')
     doing_p.add_argument('--type', choices=['Development', 'Analysis', 'Patrol', 'Debug', 'Research'],
                         default='Development', help='Task type')
+    doing_p.add_argument('--template', choices=['Development', 'Research', 'Analytics', 'Support', 'Custom'],
+                        help='Task template (v1.8.4)')
     doing_p.add_argument('--progress', '-p', type=int, help='Progress percentage (0-100)')
     doing_p.add_argument('--context', '-c', help='Context info as JSON string')
     doing_p.add_argument('--reason', '-r', help='Reason for pause/fail')
@@ -349,9 +351,12 @@ def main():
                 print("❌ 请提供任务描述: --task '任务名称'")
             else:
                 ctx = json.loads(args.context) if args.context else {}
-                state = state_mgr.start(args.task, args.type, ctx)
+                template_name = getattr(args, 'template', None)
+                state = state_mgr.start(args.task, args.type, context=ctx, template=template_name)
                 print(f"✅ 任务开始: {state['task']}")
                 print(f"   状态: {state['status']} | 进度: {state['progress']}%")
+                if template_name:
+                    print(f"   模板: {template_name}")
         
         elif args.action == 'update':
             ctx = json.loads(args.context) if args.context else {}

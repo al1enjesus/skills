@@ -1,22 +1,25 @@
 ---
 name: qst-memory
 description: |
-  Universal Memory Management System v1.7.1 for OpenClaw agents. Provides:
+  Universal Memory Management System v1.8.2 for OpenClaw agents. Provides:
   1. Multi-Agent Support (qst, mengtian, lisi, custom)
-  2. Agent State System ("I'm Doing") - IDLE/DOING/WAITING/PAUSED/COMPLETED/FAILED
+  2. Agent State System ("I'm Doing") - IDLE/DOING/WAITING/PAUSED/COMPLETED/FAILED/BLOCKED
   3. Heartbeat Integration - State-driven intelligent checking strategy
-  4. Tree-based classification structure (3-level hierarchy)
-  5. Three search methods: Tree, Semantic, Hybrid
-  6. Auto-classification with AI inference
-  7. Appendix Indexing for technical documents
-  8. Memory encryption (AES-128-CBC + HMAC) for sensitive data
-  9. Event history tracking with timeline
-  
+  4. **NEW v1.8.2**: Loop Protection & User Priority - Auto-detection and handling of stuck tasks
+  5. Tree-based classification structure (3-level hierarchy)
+  6. Three search methods: Tree, Semantic, Hybrid
+  7. Auto-classification with AI inference
+  8. Appendix Indexing for technical documents
+  9. Memory encryption (AES-128-CBC + HMAC) for sensitive data
+  10. Event history tracking with timeline
+
   Use when: Agent needs intelligent memory management with state awareness.
   Goal: Reduce token consumption by 70-90%, improve relevance by 20%, add contextual awareness.
+
+  **v1.8.2 Anti-Loop Protection**: Prevents infinite task loops with heartbeat throttling, timeout detection, and auto-recovery.
 ---
 
-# Universal Memory Management v1.7.1
+# Universal Memory Management v1.8.2
 
 ## 🌳 Tree-Based Classification Structure
 
@@ -196,6 +199,173 @@ All state changes are automatically logged with timestamps:
 ```
 
 ---
+
+## 🛡️ Loop Protection System (v1.8.2 New)
+
+### Anti-Loop Protection Mechanisms
+
+v1.8.2 introduces comprehensive protection against infinite task loops and system resource exhaustion.
+
+#### Protection Layers
+
+```
+Layer 1: Heartbeat Throttling
+  - Minimum 30-second interval between checks
+  - Prevents rapid-fire heartbeat calls
+
+Layer 2: Stagnation Detection
+  - Detects tasks with no progress for 15+ minutes
+  - Tracks progress history automatically
+
+Layer 3: Timeout Detection
+  - Priority-based timeouts:
+    * Critical: 30 minutes
+    * High: 45 minutes
+    * Normal: 60 minutes
+    * Low: 120 minutes
+
+Layer 4: Auto-Recovery
+  - Automatic priority downgrade (critical → high → normal)
+  - Auto-BLOCK for extreme timeout (2x threshold)
+  - Requires human intervention for resolved blocked tasks
+```
+
+#### Configuration
+
+```json
+{
+  "loop_protection": {
+    "critical_timeout_minutes": 30,
+    "high_timeout_minutes": 45,
+    "normal_timeout_minutes": 60,
+    "low_timeout_minutes": 120,
+    "heartbeat_min_interval_seconds": 30,
+    "stagnation_threshold_minutes": 15,
+    "auto_downgrade_on_stagnation": true,
+    "max_stagnant_checks": 10
+  }
+}
+```
+
+#### API Methods
+
+```python
+# Check if task is stuck
+is_stagnant, reason = state_mgr.is_stagnant()
+
+# Check if task has timed out
+is_timeout, reason, minutes = state_mgr.is_timeout()
+
+# Auto-handle stuck tasks
+result = state_mgr.auto_handle_stagnation()
+# Returns: {"action": "downgrade" | "block" | "none", ...}
+
+# Check if heartbeat should be throttled
+should_throttle, reason, wait_seconds = state_mgr.should_throttle_heartbeat()
+```
+
+#### Auto-Recovery Actions
+
+| Situation | Action | Trigger |
+|-----------|--------|---------|
+| **Critical task stagnation** | Downgrade to HIGH | 30+ min no progress |
+| **Critical task timeout** | Downgrade to HIGH | 30+ min elapsed |
+| **High task stagnation** | Downgrade to NORMAL | 15+ min no progress |
+| **High task deadline (2x)** | Auto-BLOCK | 90+ min elapsed |
+| **Normal task deadline (2x)** | Auto-BLOCK | 120+ min elapsed |
+
+#### Heartbeat Output with Loop Protection
+
+```
+============================================================
+❤️  Heartbeat Started: 2026-02-15 16:05:00 UTC
+============================================================
+
+🤖 Agent: lisi | 狀態: DOING | 優先級: CRITICAL
+   任務: 測試防死循環保護
+   進度: 42%
+
+🛡️  Loop Protection:
+   ✅ 心跳頻率正常 (上次檢查: 32 秒前)
+   ✅ 任務未停滯 (上次更新: 5 分鐘前)
+   ✅ 未超時 (運行時間: 25 分鐘 < 閾值: 30 分鐘)
+
+🔄 狀態: DOING [CRITICAL] - 最小化干擾
+   📢 通知: 0 提及, 0 回覆
+   ❌ 跳過: HKGBook 巡邏, 投票檢查
+
+============================================================
+✅ Heartbeat Completed: 2026-02-15 16:05:01 UTC
+============================================================
+```
+
+#### Throttled Heartbeat Example
+
+```
+[lisi] ⏸️ 心跳頻率限制：Too frequent (3s < 30s)（等待 27 秒）
+
+Check Result:
+  - 來源: lisi_doing-state.json
+  - 邏輯: 當前時間 - 上次檢查時間 < 最小間隔
+  - 行動: 跳過本次檢查
+  - 原因: 避免死循環，保護系統資源
+```
+
+#### Solving the Infinite Loop Problem
+
+**Problem** (v1.8 initial deployment):
+```json
+{
+  "status": "doing",
+  "task": "QST Memory v1.8 實施",
+  "progress": 0,
+  "priority": "critical",
+  "start_time": "14:08:59"
+}
+```
+Task stuck at 0% for 1.77 hours → infinite heartbeat loop.
+
+**Solution** (v1.8.2):
+```
+Heartbeat Check 1 (16:00):
+  - Check interval: 0 seconds (OK)
+  - Task timeout: 51+ minutes > 30m threshold
+  - Auto-action: DOWNGRADE priority (critical → high)
+
+Heartbeat Check 2 (16:05):
+  - Check interval: 300 seconds (OK, >30s min)
+  - Task timeout: 56+ minutes > 45m threshold
+  - Stagnation detected (0% for 15+ min)
+  - Auto-action: BLOCK task (requires human intervention)
+
+Result:
+  - Priority: high
+  - Status: BLOCKED
+  - Reason: "任務停滯過久: 執行時間 56 分鐘超限（閾值：45 分鐘）"
+  - Heartbeat: Only check @mentions and alerts
+  - Loop eliminated ✅
+```
+
+---
+
+## 👤 User Priority Response Mechanism (v1.8.2 New)
+
+v1.8.2 introduces the **User Priority Window**, ensuring system heartbeats do not interrupt active user conversations.
+
+### How it Works
+
+1. **Detection**: Tracks the timestamp of the last user interaction.
+2. **Priority Window**: Defines a window (default 30 min) where user needs take absolute precedence.
+3. **Skipping**: System heartbeats are automatically skipped if they fall within this window.
+4. **Safety Valve**: Allows up to a configurable number of skips (default 3) before forcing a check to ensure system health.
+
+### Configuration
+
+
+
+### Heartbeat Output (User Priority Mode)
+
+
 
 ## 💓 Heartbeat Integration (v1.7.1 New)
 
