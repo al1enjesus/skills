@@ -15,9 +15,12 @@ metadata:
         - GRADIENT_API_KEY
       bins:
         - python3
+      pip:
+        - requests>=2.31.0
+        - beautifulsoup4>=4.12.0
   author: Rogue Iteration
-  version: "0.1.0"
-  tags: ["gradient", "inference", "llm", "do", "digitalocean"]
+  version: "0.1.3"
+  tags: ["digitalocean", "gradient-ai", "inferencing", "llm", "chat-completions", "image-generation"]
 ---
 
 # 🦞 Gradient AI — Serverless Inference
