@@ -1,13 +1,18 @@
 {
   "owner": "theplasmak",
   "slug": "faster-whisper",
-  "displayName": "Faster Whisper",
+  "displayName": "description: Local speech-to-text using faster-whisper. 4-6x faster than OpenAI Whisper with identical accuracy; GPU acceleration enables ~20x realtime transcription. Supports standard and distilled models with word-level timestamps.",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1771083850135,
-    "commit": "https://github.com/openclaw/skills/commit/8fabcd7d55417c532fb103dea4bdf5e2c9b23699"
+    "version": "1.0.11",
+    "publishedAt": 1771309757555,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1771083850135,
+      "commit": "https://github.com/openclaw/skills/commit/8fabcd7d55417c532fb103dea4bdf5e2c9b23699"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1769711541359,

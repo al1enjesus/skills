@@ -35,7 +35,7 @@ Use this skill when you need to:
 |------|---------|-------|
 | **Basic transcription** | `./scripts/transcribe audio.mp3` | Uses default distil-large-v3 |
 | **Faster English** | `./scripts/transcribe audio.mp3 --model distil-medium.en --language en` | English-only, 6.8x faster |
-| **Maximum accuracy** | `./scripts/transcribe audio.mp3 --model large-v3-turbo --beam-size 10` | Slower but best quality |
+| **Maximum accuracy** | `./scripts/transcribe audio.mp3 --model distil-large-v3 --beam-size 10` | Preferred default; use large-v3 if accuracy critical |
 | **Word timestamps** | `./scripts/transcribe audio.mp3 --word-timestamps` | For subtitles/captions |
 | **JSON output** | `./scripts/transcribe audio.mp3 --json -o output.json` | Programmatic access |
 | **Multilingual** | `./scripts/transcribe audio.mp3 --model large-v3-turbo` | Auto-detects language |
@@ -82,7 +82,7 @@ digraph model_selection {
 | `small` / `small.en` | 244M | Fast | Better | Most tasks |
 | `medium` / `medium.en` | 769M | Moderate | High | Quality transcription |
 | `large-v1/v2/v3` | 1.5GB | Slower | Best | Maximum accuracy |
-| **`large-v3-turbo`** | 809M | Fast | Excellent | **Recommended for accuracy** |
+| `large-v3-turbo` | 809M | Fast | Excellent | High accuracy (slower than distil) |
 
 #### Distilled Models (~6x Faster, ~1% WER difference)
 | Model | Size | Speed vs Standard | Accuracy | Use Case |
