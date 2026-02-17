@@ -6,18 +6,27 @@
 
 const VoiceAI = require('../voice-ai-tts-sdk');
 const fs = require('fs');
+const path = require('path');
 
-const VOICES = {
-  ellie: 'd1bf0f33-8e0e-4fbf-acf8-45c3c6262513',
-  oliver: 'f9e6a5eb-a7fd-4525-9e92-75125249c933',
-  lilith: '4388040c-8812-42f4-a264-f457a6b2b5b9',
-  smooth: 'dbb271df-db25-4225-abb0-5200ba1426bc',
-  corpse: '72d2a864-b236-402e-a166-a838ccc2c273',
-  skadi: '559d3b72-3e79-4f11-9b62-9ec702a6c057',
-  zhongli: 'ed751d4d-e633-4bb0-8f5e-b5c8ddb04402',
-  flora: 'a931a6af-fb01-42f0-a8c0-bd14bc302bb1',
-  chief: 'bd35e4e6-6283-46b9-86b6-7cfa3dd409b9'
-};
+const VOICES_PATH = path.join(__dirname, '..', 'voices.json');
+let cachedVoiceData = null;
+
+function loadVoiceData() {
+  if (!cachedVoiceData) {
+    const raw = fs.readFileSync(VOICES_PATH, 'utf8');
+    cachedVoiceData = JSON.parse(raw);
+  }
+  return cachedVoiceData;
+}
+
+function getVoiceMap() {
+  const data = loadVoiceData();
+  return data.voices || {};
+}
+
+function listVoiceNames() {
+  return Object.keys(getVoiceMap()).sort().join(', ');
+}
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -39,7 +48,7 @@ Usage:
 
 Options:
   --text     Text to convert to speech (required)
-  --voice    Voice name: ellie, oliver, lilith, smooth, corpse, skadi, zhongli, flora, chief
+  --voice    Voice name: ${listVoiceNames()}
   --output   Output file (default: output.mp3)
   --stream   Use streaming mode (good for long texts)
 
@@ -62,12 +71,19 @@ async function main() {
   
   const apiKey = process.env.VOICE_AI_API_KEY;
   if (!apiKey) {
-    console.error('Error: VOICE_AI_API_KEY environment variable required');
+    console.error('Error: VOICE_AI_API_KEY is required (set it as an environment variable)');
     process.exit(1);
   }
   
   const client = new VoiceAI(apiKey);
-  const voiceId = opts.voice ? VOICES[opts.voice.toLowerCase()] : undefined;
+  const voiceMap = getVoiceMap();
+  const voiceName = opts.voice ? opts.voice.toLowerCase() : undefined;
+  const voiceEntry = voiceName ? voiceMap[voiceName] : undefined;
+  if (voiceName && !voiceEntry) {
+    console.error(`Error: Unknown voice "${opts.voice}". Available voices: ${listVoiceNames()}`);
+    process.exit(1);
+  }
+  const voiceId = voiceEntry ? voiceEntry.voice_id : undefined;
   
   console.log(`Generating speech${opts.stream ? ' (streaming)' : ''}...`);
   
