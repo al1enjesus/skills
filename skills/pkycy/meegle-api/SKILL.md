@@ -1,22 +1,31 @@
 ---
-name: meegle-api
+name: meegle-api-work-items
 description: |
-  Meegle Open API skills (index). Read the specific skill for your need. Order: Users, Space, Work Items, Setting, Comments, Views & Measurement.
+  Meegle OpenAPI for work items: create, get, update, list, search, and related operations.
+  Prerequisites: token and domain — see skill meegle-api-users.
 metadata:
-  { "openclaw": {} }
+  openclaw: {}
+  required_credentials:
+    domain: "From meegle-api-users"
+    plugin_access_token_or_user_access_token: "From meegle-api-users (obtain token first)"
 ---
 
-# Meegle API (index)
+# Meegle API — Work Items
 
-Meegle OpenAPI is split into the following skills. Read **meegle-api-users** first for domain and token; then read the skill that matches your task.
+Create and manage work items (tasks, stories, bugs, etc.) in a Meegle space.
 
-| Order | Sub-skill (path under meegle-api/) | When to read |
-|-------|-------------------------------------|--------------|
-| 1 | **meegle-api-users/SKILL.md** | Domain, access token, context (project_key, user_key), request headers, global constraints. Read this before any other Meegle API call. |
-| 2 | **meegle-api-space/SKILL.md** | Space (project) operations. |
-| 3 | **meegle-api-work-items/SKILL.md** | Create, get, update work items (tasks, stories, bugs). |
-| 4 | **meegle-api-setting/SKILL.md** | Settings, work item types, fields, process configuration. |
-| 5 | **meegle-api-comments/SKILL.md** | Comments on work items or other entities. |
-| 6 | **meegle-api-views-measurement/SKILL.md** | Views, kanban, Gantt, charts, measurement. |
+**Prerequisites:** Obtain domain and access token first; see skill **meegle-api-users**.
 
-Each sub-skill lives under `skills/meegle-api/` (e.g. `skills/meegle-api/meegle-api-users/SKILL.md`). Use the `Read` tool on the relevant path when you need that API area.
+---
+
+## Where to Find Work Item Skills
+
+| Skill | Directory | Description |
+|-------|-----------|-------------|
+| Create / Read / Update work items | `work-item-read-and-write/` | Create work items, get work item details, update work items |
+| List & search work items | `work-item-lists/` | Filter, search, full-text search, associated items, universal search |
+| Workflows & nodes | `workflows-and-nodes/` | Workflow and node related APIs |
+| Tasks | `tasks/` | Task related APIs |
+| Attachment | `attachment/` | Work item attachment related APIs |
+| Space association | `space-association/` | Space association related APIs |
+| Group | `group/` | Work item group related APIs |
