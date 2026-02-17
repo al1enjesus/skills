@@ -1,76 +1,83 @@
 ---
 name: Infrastructure
-description: "Design, provision, and connect cloud resources across servers, networks, and services."
+slug: infrastructure
+version: 1.0.1
+description: Design, provision, and connect cloud resources across servers, networks, and services.
+changelog: User-driven credential model, explicit tool requirements
+metadata: {"clawdbot":{"emoji":"🏗️","requires":{"bins":[]},"os":["linux","darwin","win32"]}}
 ---
 
 ## Scope
 
-This skill covers **architecture and orchestration** — how pieces fit together.
-For individual components, use dedicated skills: `server`, `docker`, `ci-cd`, `ssl`, `monitoring`.
+This skill:
+- ✅ Guides architecture decisions
+- ✅ Provides provisioning commands for user to run
+- ✅ Documents infrastructure patterns
 
-## When to Use
+**User-driven model:**
+- User provides cloud credentials when needed
+- User runs provisioning commands
+- Skill guides decisions and generates commands
 
-- Planning architecture for a new project
-- Provisioning VPS/cloud resources programmatically
-- Networking: firewalls, VPNs, load balancers, DNS routing
-- Infrastructure as Code (Terraform, Pulumi)
-- Connecting services across multiple servers
-- Backup strategies and disaster recovery
-- Cost analysis and optimization
+This skill does NOT:
+- ❌ Store or access cloud credentials directly
+- ❌ Run provisioning commands automatically
+- ❌ Modify infrastructure without user confirmation
 
-## Decision Framework
+**For implementation:** User runs commands skill provides, or uses `server` skill for execution.
 
-| Question | This skill? |
-|----------|-------------|
-| "How do I structure infra for this project?" | ✅ Yes |
-| "Should I add another server or scale this one?" | ✅ Yes |
-| "How do I connect services across servers?" | ✅ Yes |
-| "How do I configure nginx?" | ❌ Use `server` |
-| "How do I write a Dockerfile?" | ❌ Use `docker` |
-| "How do I set up GitHub Actions?" | ❌ Use `ci-cd` |
+## Quick Reference
 
-## Architecture Patterns
+| Topic | File |
+|-------|------|
+| Architecture patterns | `patterns.md` |
+| Provider commands | `providers.md` |
+| Backup strategies | `backups.md` |
 
-| Stage | Recommended Setup |
-|-------|-------------------|
-| MVP (<1K users) | Single VPS, Docker Compose, managed DB optional |
-| Growth (1K-50K) | Dedicated DB, load balancer, separate workers |
-| Scale (50K+) | Multi-region, auto-scaling, CDN, managed services |
+## Core Rules
 
-For detailed patterns per stage, see `patterns.md`.
+### 1. User Runs Commands
+Skill generates commands, user executes:
+```
+Agent: "To create the server, run:
+        hcloud server create --name web1 --type cx21 --image ubuntu-24.04
+        
+        This requires HCLOUD_TOKEN in your environment."
+User: [runs command]
+```
 
-## Cloud Provider Quick Reference
+### 2. Required Tools (User Installs)
+| Provider | Tool | Install |
+|----------|------|---------|
+| Hetzner | `hcloud` | brew install hcloud |
+| AWS | `aws` | brew install awscli |
+| DigitalOcean | `doctl` | brew install doctl |
+| Docker | `docker` | Docker Desktop |
 
-| Task | Hetzner | AWS | DigitalOcean |
-|------|---------|-----|--------------|
-| Create server | `hcloud server create` | `aws ec2 run-instances` | `doctl compute droplet create` |
-| Firewall | Cloud Firewall | Security Groups | Cloud Firewall |
-| DNS | External (Cloudflare) | Route53 | Domains |
-| Load balancer | Load Balancer | ALB/NLB | Load Balancer |
+### 3. Credential Handling
+- User sets credentials in their environment
+- Skill never stores or logs credential values
+- Commands reference env vars: `$HCLOUD_TOKEN`, `$AWS_ACCESS_KEY_ID`
 
-For provider-specific commands, see `providers.md`.
+### 4. Architecture Guidance
 
-## Networking Essentials
+| Stage | Recommended |
+|-------|-------------|
+| MVP | Single VPS + Docker Compose |
+| Growth | Dedicated DB + load balancer |
+| Scale | Multi-region + CDN |
 
-- **Firewall:** Default deny, explicit allow. Open only needed ports.
-- **VPN:** WireGuard for server-to-server. Tailscale for quick setup.
-- **DNS:** Cloudflare for most cases. Low TTL during migrations.
-- **Load balancing:** Start with reverse proxy (Caddy/Traefik). Add LB when needed.
+### 5. Decision Framework
+| Question | Answer |
+|----------|--------|
+| How to structure infra? | ✅ This skill |
+| Should I add another server? | ✅ This skill |
+| How to configure nginx? | Use `server` skill |
+| How to write Dockerfile? | Use `docker` skill |
 
-## Backup Strategy
-
-| Data Type | Method | Frequency |
-|-----------|--------|-----------|
-| Database | pg_dump + S3/B2 | Daily + before changes |
+### 6. Backup Strategy
+| Data | Method | Frequency |
+|------|--------|-----------|
+| Database | pg_dump → S3/B2 | Daily |
 | Volumes | Snapshots | Weekly |
-| Config | Git (IaC) | Every change |
-
-For backup scripts and restore procedures, see `backups.md`.
-
-## Cost Optimization
-
-- Right-size instances (most apps need less than you think)
-- Use reserved instances for stable workloads (30-50% savings)
-- Spot/preemptible for batch jobs
-- Monitor egress — it's often the hidden cost
-- Hetzner/OVH for predictable pricing vs hyperscalers
+| Config | Git | Every change |
