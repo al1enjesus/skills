@@ -1,0 +1,11 @@
+{
+  "owner": "zachmael",
+  "slug": "clawhq-dashboard",
+  "displayName": "OpenClaw Dashboard Connector - ClawHQ",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1771176735607,
+    "commit": null
+  },
+  "history": []
+}
