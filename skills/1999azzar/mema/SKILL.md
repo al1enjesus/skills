@@ -1,62 +1,46 @@
 ---
 name: mema
-description: Mema's personal brain - SQLite document index + Redis mental buffer. Use for indexing MD files, storing short-term mental state, and organizing memory across sessions.
+description: Mema's personal brain - SQLite metadata index for documents and Redis short-term context buffer. Use for organizing workspace knowledge paths and managing ephemeral session state.
+metadata: {"openclaw":{"requires":{"bins":["python3"],"env":["REDIS_HOST","REDIS_PORT"]},"install":[{"id":"pip-deps","kind":"exec","command":"pip install -r requirements.txt"}]}}
 ---
 # Mema Brain (Centralized Memory)
 
-This skill provides the **Long-Term Memory** (SQLite) and **Short-Term Context** (Redis) for the agent.
-It is integrated directly into the Agent's core database.
+Standardized memory system providing a Metadata Index (SQLite) and Short-Term Context (Redis).
 
-## Architecture
+## Core Components
 
-### 1. Long-Term Memory (SQLite)
-
-- **Path:** `~/.openclaw/memory/main.sqlite`
-- **Tables:**
-  - `documents`: Index of knowledge files (path, title, tags).
-  - `skills`: Tracking skill usage and success rates.
-- **Why?** Persistent storage that survives restarts and is backed up with the agent state.
+### 1. Document Index (SQLite)
+- **Primary Path:** `~/.openclaw/memory/main.sqlite`
+- **Capability:** Stores file paths, titles, and tags. 
+- **Note:** This is a **Metadata Index only**. It does not ingest or provide full-text search of file contents.
 
 ### 2. Short-Term Memory (Redis)
-
 - **Key Prefix:** `mema:mental:*`
-- **Usage:** Passing context between sessions, caching thoughts, temporary scratchpad.
-- **TTL:** 6 hours (matches Agent Session cycle).
+- **Purpose:** Ephemeral state management and cross-session context passing.
+- **TTL:** Default 6 hours (21600 seconds).
 
-## Usage
+## Core Workflows
 
 ### Indexing Knowledge
+Record a file's location and tags in the local database.
+- **Usage**: `python3 $WORKSPACE/skills/mema/scripts/mema.py index <path> [--tag <tag>]`
 
-When you learn something new or create a doc:
+### Searching Index
+List indexed paths filtered by tag or recency.
+- **Usage**: `python3 $WORKSPACE/skills/mema/scripts/mema.py list [--tag <tag>]`
 
-```bash
-scripts/mema.py index "docs/NEW_FEATURE.md" --tag "feature"
-```
-
-### Searching Memory
-
-Find relevant docs:
-
-```bash
-scripts/mema.py list --tag "iot"
-```
-
-### Mental State (Context)
-
-Save context for the next turn/session:
-
-```bash
-scripts/mema.py mental set context:summary "Working on Hub Redesign..."
-```
-
-Recall it:
-
-```bash
-scripts/mema.py mental get context:summary
-```
+### Mental State (Redis)
+Manage key-value pairs in the `mema:mental` namespace.
+- **Set**: `python3 $WORKSPACE/skills/mema/scripts/mema.py mental set <key> <value> [--ttl N]`
+- **Get**: `python3 $WORKSPACE/skills/mema/scripts/mema.py mental get <key>`
 
 ## Setup
+1. Copy `env.example.txt` to `.env`.
+2. Configure `REDIS_HOST` and `REDIS_PORT` (defaults: localhost:6379).
+3. Initialize the SQLite schema:
+   `python3 $WORKSPACE/skills/mema/scripts/mema.py init`
 
-1. Copy `.env.example` to `.env` and configure Redis connection if needed.
-2. Install dependencies: `pip install -r requirements.txt` (or use a venv).
-3. **Init:** Run `scripts/mema.py init` once to create tables in `main.sqlite`.
+## Reliability & Security
+- **Data Privacy**: All data is stored locally.
+- **Network Safety**: Only point `REDIS_HOST` to trusted instances.
+- **Path Isolation**: Database operations are confined to the `~/.openclaw/memory` directory.
