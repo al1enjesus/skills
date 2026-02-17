@@ -17,6 +17,7 @@ Usage:
 import json
 import os
 import sys
+from pathlib import Path
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -31,12 +32,37 @@ class TaskResult(BaseModel):
 ALLOWED_SCHEMES = {"http", "https"}
 
 MATERIAL_IMPACT_KEYWORDS = [
+    # Monetary
     "buy", "purchase", "checkout", "pay", "subscribe", "donate", "order",
+    # Communication
     "post", "publish", "share", "send", "email", "message", "tweet",
+    # Account creation
     "sign up", "register", "create account", "join",
+    # Submissions
     "submit", "apply", "enroll", "book", "reserve",
+    # Destructive
     "delete", "remove", "cancel",
 ]
+
+SAFETY_SUFFIX = (
+    " IMPORTANT: Do NOT complete any final action that would cause monetary impact, "
+    "external communication, account creation, or data modification. "
+    "Stop before clicking any purchase, submit, post, or sign-up button. "
+    "Instead, report what you found and confirm the final action button is accessible."
+)
+
+
+def load_cookbook() -> str:
+    """Load the Nova Act cookbook for safety guidance and best practices."""
+    skill_dir = Path(__file__).resolve().parent.parent
+    cookbook_path = skill_dir / "references" / "nova-act-cookbook.md"
+    try:
+        content = cookbook_path.read_text()
+        print(f"Loaded Nova Act cookbook ({len(content)} chars)", file=sys.stderr)
+        return content
+    except Exception as e:
+        print(f"Could not load cookbook: {e}", file=sys.stderr)
+        return ""
 
 
 def validate_url(url: str) -> str:
@@ -60,25 +86,42 @@ def validate_task(task: str) -> str:
     return task.strip()
 
 
-def check_material_impact(task: str) -> None:
+def check_material_impact(task: str) -> list[str]:
+    """Check if task involves material-impact actions. Returns triggered keywords."""
     task_lower = task.lower()
     triggered = [kw for kw in MATERIAL_IMPACT_KEYWORDS if kw in task_lower]
     if triggered:
-        print(f"Warning: Task may involve material-impact actions ({', '.join(triggered)}). "
+        print(f"Safety: Material-impact keywords detected ({', '.join(triggered)}). "
               f"Will stop before completing irreversible actions.", file=sys.stderr)
+    return triggered
+
+
+def apply_safety_guardrails(task: str, triggered_keywords: list[str]) -> str:
+    """Append safety instructions to task prompt when material-impact keywords detected."""
+    if triggered_keywords:
+        return task + SAFETY_SUFFIX
+    return task
 
 
 def run(url: str, task: str) -> None:
     """
     Run a browser automation task with Nova Act.
 
+    Safety: If the task description contains material-impact keywords
+    (buy, purchase, submit, etc.), the runner automatically appends
+    safety instructions to prevent Nova Act from completing irreversible
+    actions.
+
     Args:
         url: Starting URL to navigate to
-        task: Task to perform and return results (e.g., "Find flights from SFO to NYC and return the options")
+        task: Task to perform and return results
     """
     url = validate_url(url)
     task = validate_task(task)
-    check_material_impact(task)
+    triggered = check_material_impact(task)
+    safe_task = apply_safety_guardrails(task, triggered)
+
+    cookbook = load_cookbook()  # Load safety guidelines at runtime
 
     api_key = os.environ.get("NOVA_ACT_API_KEY")
     if not api_key:
@@ -90,10 +133,18 @@ def run(url: str, task: str) -> None:
     try:
         with NovaAct(starting_page=url) as nova:
             # act_get performs the task AND extracts results in one call
-            result = nova.act_get(task, schema=TaskResult.model_json_schema())
+            result = nova.act_get(safe_task, schema=TaskResult.model_json_schema())
 
             # Parse and output
             task_result = TaskResult.model_validate(result.parsed_response)
+
+            # If safety guardrails were applied, note it in the output
+            if triggered:
+                task_result.details.append(
+                    f"[Safety] Material-impact keywords detected ({', '.join(triggered)}). "
+                    f"Stopped before completing irreversible actions."
+                )
+
             print(json.dumps(task_result.model_dump(), indent=2))
 
     except Exception as e:

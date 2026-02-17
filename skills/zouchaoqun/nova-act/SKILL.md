@@ -42,7 +42,26 @@ Use Amazon Nova Act for AI-powered browser automation. The bundled script handle
 - Be aware traces may capture **PII or sensitive data** visible on visited pages
 - Review/delete trace files after use if they contain sensitive content
 
-## Safety Guarantees
+## Safety Guardrails
+
+### Instructions for the AI Agent
+
+**ALWAYS stop before actions that cause monetary impact, external communication, account creation, or data modification.**
+
+When a task involves material-impact actions (see `MATERIAL_IMPACT_KEYWORDS` in `scripts/nova_act_runner.py`), you MUST:
+1. Navigate TO the final step (checkout page, submit button, publish screen)
+2. Verify the final action is accessible (button exists, is enabled)
+3. Use `act_get()` to observe without acting — DO NOT click the final action button
+4. Report findings to the user without completing the action
+
+**Categories requiring safety stops:**
+- **Monetary**: buy, purchase, checkout, pay, subscribe, donate, order
+- **Communication**: post, publish, share, send, email, message, tweet
+- **Account creation**: sign up, register, create account, join
+- **Submissions**: submit, apply, enroll, book, reserve
+- **Destructive**: delete, remove, cancel
+
+### Safety Guarantees
 
 When performing browser automation, this skill will **NEVER:**
 - Complete actual purchases or financial transactions
@@ -55,6 +74,9 @@ This skill will **ALWAYS:**
 - Stop before any action that could have material real-world impact
 - Ask for explicit user confirmation before taking irreversible actions
 - Report findings rather than completing destructive operations
+- Document safety stops in output when material-impact actions are detected
+
+See `references/nova-act-cookbook.md` for detailed safe workflow patterns.
 
 ## Quick Start with Bundled Script
 
@@ -119,10 +141,10 @@ Use for clicking, typing, scrolling, navigation. **Note:** Context is best maint
 
 ```python
 nova.act("""
-    Click the 'Sign In' button.
-    Type 'hello@example.com' in the email field.
-    Scroll down to the pricing section.
-    Select 'California' from the state dropdown.
+    Click the search box.
+    Type 'automation tools' and press Enter.
+    Scroll down to the results section.
+    Select 'Relevance' from the sort dropdown.
 """)
 ```
 
@@ -169,18 +191,24 @@ with NovaAct(starting_page="https://google.com/flights") as nova:
         "Get the top 3 cheapest flights with airline, price, and times",
         schema=list[Flight]
     )
+    # SAFETY STOP: Only extracted data. Did NOT select a flight or proceed to booking.
 ```
 
 ### Form Filling
 
 ```python
-with NovaAct(starting_page="https://example.com/signup") as nova:
+with NovaAct(starting_page="https://example.com/contact") as nova:
     nova.act("""
-        Fill the form: name 'John Doe', email 'john@example.com'.
+        Fill the form: name 'Test User', email 'test@example.com'.
         Select 'United States' for country.
-        Check the 'I agree to terms' checkbox.
-        Click Submit.
     """)
+
+    # SAFETY STOP: Verify submit button exists but DO NOT click it
+    submit_ready = nova.act_get(
+        "Is there a submit button visible and enabled?",
+        schema=bool
+    )
+    print(f"Form ready to submit: {submit_ready}")
 ```
 
 ### Data Extraction
@@ -201,6 +229,11 @@ with NovaAct(starting_page="https://news.ycombinator.com") as nova:
 4. **Use schemas for extraction**: Always provide a schema to `act_get()` for structured data
 5. **Handle page loads**: Nova Act waits for stability, but add explicit waits for dynamic content if needed
 6. **Take screenshots for verification**: Use `nova.page.screenshot()` to capture results
+
+## Resources
+
+- **`references/nova-act-cookbook.md`** — Best practices and safety patterns for Nova Act, including `MATERIAL_IMPACT_KEYWORDS` documentation and safe workflow examples. The AI agent should consult this for complex automation tasks.
+- **`README.md`** — User-facing installation and safety overview.
 
 ## API Key
 

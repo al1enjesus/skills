@@ -3,11 +3,16 @@
   "slug": "nova-act",
   "displayName": "Nova Act Browser Automation",
   "latest": {
-    "version": "1.5.0",
-    "publishedAt": 1771208227378,
-    "commit": "https://github.com/openclaw/skills/commit/02c5ef4dad26710d558eb3b005fa018ea3e50687"
+    "version": "1.6.0",
+    "publishedAt": 1771220429183,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.0",
+      "publishedAt": 1771208227378,
+      "commit": "https://github.com/openclaw/skills/commit/02c5ef4dad26710d558eb3b005fa018ea3e50687"
+    },
     {
       "version": "1.4.1",
       "publishedAt": 1771143821319,
