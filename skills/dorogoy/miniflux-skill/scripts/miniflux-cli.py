@@ -118,8 +118,6 @@ def cmd_entries(args):
         filters['direction'] = args.direction
     if args.search:
         filters['search'] = args.search
-    if args.category_id and not args.feed_id:
-        filters['category_id'] = args.category_id
     if args.starred is not None:
         filters['starred'] = args.starred
     if args.before:
@@ -353,6 +351,17 @@ def cmd_create_category(args):
     return 0
 
 
+def cmd_toggle_bookmark(args):
+    """Toggle bookmark/star status of an entry."""
+    client = get_client()
+    is_starred = client.toggle_bookmark(args.entry_id)
+
+    status = "⭐ starred" if is_starred else "○ unstarred"
+    print(f"\n✅ Entry {args.entry_id} {status}\n")
+
+    return 0
+
+
 def cmd_delete_category(args):
     """Delete a category."""
     client = get_client()
@@ -456,6 +465,11 @@ def main():
     create_category_parser = subparsers.add_parser('create-category', help='Create a new category')
     create_category_parser.add_argument('--title', required=True, help='Category title')
     create_category_parser.set_defaults(func=cmd_create_category)
+
+    # Toggle bookmark
+    toggle_bookmark_parser = subparsers.add_parser('toggle-bookmark', help='Toggle bookmark/star status of an entry')
+    toggle_bookmark_parser.add_argument('--entry-id', type=int, required=True, help='Entry ID')
+    toggle_bookmark_parser.set_defaults(func=cmd_toggle_bookmark)
 
     # Delete category
     delete_category_parser = subparsers.add_parser('delete-category', help='Delete a category')
