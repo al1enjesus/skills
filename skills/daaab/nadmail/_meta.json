@@ -1,13 +1,18 @@
 {
   "owner": "daaab",
   "slug": "nadmail",
-  "displayName": "NadMail",
+  "displayName": "NadMail - Email for AI Agents",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1771006522483,
-    "commit": "https://github.com/openclaw/skills/commit/ec4b074eede22595a7114b6ddfc919916fdaa2e9"
+    "version": "1.2.2",
+    "publishedAt": 1771345480990,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1771006522483,
+      "commit": "https://github.com/openclaw/skills/commit/ec4b074eede22595a7114b6ddfc919916fdaa2e9"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1770654004998,
