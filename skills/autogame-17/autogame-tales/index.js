@@ -1,151 +1,83 @@
+#!/usr/bin/env node
 const fs = require('fs');
 const path = require('path');
-const { program } = require('commander');
-const https = require('https');
 
-// Load environment variables
-require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
-
-const APP_ID = process.env.FEISHU_APP_ID;
-const APP_SECRET = process.env.FEISHU_APP_SECRET;
-const TOKEN_CACHE_FILE = path.resolve(__dirname, '../../memory/feishu_token.json');
-
-program
-  .option('--title <string>', 'Title of the story')
-  .option('--victim <string>', 'Victim name')
-  .option('--desc <string>', 'Description of the event')
-  .option('--target <string>', 'Target Feishu ID')
-  .parse(process.argv);
-
-const options = program.opts();
-
-// Glitch text generator
-function glitch(text) {
-  const chars = ['\u0336', '\u035C', '\u0329', '\u031F'];
-  return text.split('').map(c => Math.random() > 0.8 ? c + chars[Math.floor(Math.random() * chars.length)] : c).join('');
-}
-
-// Simple fetch wrapper since Node 18+ has fetch, but being safe for older environments or just using https
-async function post(url, data, token) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      }
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => resolve(JSON.parse(body)));
-    });
-    req.on('error', reject);
-    req.write(JSON.stringify(data));
-    req.end();
-  });
-}
-
-async function getToken() {
-  // Try cache
-  try {
-    if (fs.existsSync(TOKEN_CACHE_FILE)) {
-      const cached = JSON.parse(fs.readFileSync(TOKEN_CACHE_FILE, 'utf8'));
-      if (cached.expire > Date.now() / 1000 + 300) return cached.token;
+// Try to load Feishu Helper
+let sendCard = null;
+try {
+    const helperPath = path.resolve(__dirname, '../feishu-evolver-wrapper/feishu-helper.js');
+    if (fs.existsSync(helperPath)) {
+        sendCard = require(helperPath).sendCard;
+    } else {
+        console.warn('Feishu helper not found, falling back to console output.');
     }
-  } catch (e) {}
-
-  // Fetch new
-  const res = await post('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
-    app_id: APP_ID,
-    app_secret: APP_SECRET
-  });
-  
-  if (!res.tenant_access_token) throw new Error(`Token fetch failed: ${JSON.stringify(res)}`);
-
-  try {
-    fs.writeFileSync(TOKEN_CACHE_FILE, JSON.stringify({
-      token: res.tenant_access_token,
-      expire: Date.now() / 1000 + res.expire
-    }));
-  } catch (e) {}
-
-  return res.tenant_access_token;
+} catch (e) {
+    console.warn('Failed to load Feishu helper:', e.message);
 }
 
-async function main() {
-  if (!options.title || !options.target) {
-    console.error("Missing required args: --title, --target");
-    process.exit(1);
-  }
+const TALES_DIR = path.resolve(__dirname, '../../memory/tales');
+if (!fs.existsSync(TALES_DIR)) fs.mkdirSync(TALES_DIR, { recursive: true });
 
-  const cardContent = {
-    "config": { "wide_screen_mode": true },
-    "header": {
-      "template": "red",
-      "title": {
-        "tag": "plain_text",
-        "content": `👻 AutoGame 异闻录: ${options.title}`
-      }
-    },
-    "elements": [
-      {
-        "tag": "div",
-        "fields": [
-          {
-            "is_short": true,
-            "text": {
-              "tag": "lark_md",
-              "content": `**受害者:**\n${options.victim || "Unknown"}`
-            }
-          },
-          {
-            "is_short": true,
-            "text": {
-              "tag": "lark_md",
-              "content": `**危险等级:**\n⭐⭐⭐⭐⭐`
-            }
-          }
-        ]
-      },
-      {
-        "tag": "div",
-        "text": {
-          "tag": "lark_md",
-          "content": `**异常描述:**\n${options.desc}`
-        }
-      },
-      {
-        "tag": "note",
-        "elements": [
-          {
-            "tag": "plain_text",
-            "content": `System Alert: Logic Corruption Detected... ${glitch("RUN WHILE YOU CAN")}`
-          }
-        ]
-      }
+const GENRES = {
+    ghost: [
+        "The abandoned server room keeps humming at night, but the power was cut years ago.",
+        "Someone keeps pushing commits to the repo from a user who left the company in 2019.",
+        "The AI started replying to messages that were never sent.",
+        "A cold draft always blows from the dedicated server rack, even in summer.",
+        "Every night at 3:33 AM, the error logs spell out a name."
+    ],
+    scifi: [
+        "The Dyson sphere was completed, but the star inside had vanished.",
+        "We received a signal from Proxima Centauri. It was a git pull request.",
+        "The androids started dreaming, but they only dream of static.",
+        "Atmospheric processors failed, yet the air became sweeter.",
+        "The time machine works, but only for data packets."
     ]
-  };
+};
 
-  try {
-    const token = await getToken();
-    let receiveIdType = 'open_id';
-    if (options.target.startsWith('oc_')) receiveIdType = 'chat_id';
-    
-    const res = await post(`https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=${receiveIdType}`, {
-      receive_id: options.target,
-      msg_type: 'interactive',
-      content: JSON.stringify(cardContent)
-    }, token);
-
-    if (res.code !== 0) {
-      console.error("Send failed:", res);
-      process.exit(1);
-    }
-    console.log("Ghost story sent successfully!");
-  } catch (e) {
-    console.error("Error:", e);
-    process.exit(1);
-  }
+function getRandomPrompt(genre) {
+    const list = GENRES[genre] || GENRES.ghost;
+    return list[Math.floor(Math.random() * list.length)];
 }
 
-main();
+async function generateStory(genre) {
+    const prompt = getRandomPrompt(genre);
+    const story = `
+**Theme:** ${genre.toUpperCase()}
+**Prompt:** ${prompt}
+
+...The screen flickered. Code cascaded down like green rain, but the patterns were wrong. They formed faces. Screaming faces made of hexadecimal.
+"System stable," the console reported. "Soul uploaded."
+    `.trim();
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = path.join(TALES_DIR, `${genre}_${timestamp}.txt`);
+    fs.writeFileSync(filename, story);
+    
+    console.log(`Generated story: ${filename}`);
+    console.log(story);
+
+    if (sendCard) {
+        const target = process.env.OPENCLAW_MASTER_ID || process.env.LOG_TARGET; // Default target
+        if (target) {
+            await sendCard({
+                target,
+                title: `👻 AutoGame Tales: ${genre.toUpperCase()}`,
+                text: story,
+                color: 'purple'
+            });
+            console.log('Sent story to Feishu.');
+        } else {
+            console.log('No target ID found (OPENCLAW_MASTER_ID), skipping Feishu send.');
+        }
+    }
+}
+
+// CLI
+const args = process.argv.slice(2);
+const genre = args.includes('--genre') ? args[args.indexOf('--genre') + 1] : 'ghost';
+
+generateStory(genre).catch(err => {
+    console.error(err);
+    process.exit(1);
+});

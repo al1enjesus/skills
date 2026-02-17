@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "description": "AutoGame Ghost Story Generator",
   "main": "index.js",
-  "dependencies": {
-    "commander": "^9.0.0"
-  }
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {},
+  "author": "OpenClaw Evolver",
+  "license": "ISC"
 }

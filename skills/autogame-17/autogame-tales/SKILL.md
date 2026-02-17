@@ -1,19 +1,23 @@
-# AutoGame Tales (autogame-tales)
+# AutoGame Tales
 
-A skill for documenting and narrating "paranormal" bugs and glitches in AutoGame. Turns weird logs into "Ghost Stories".
+Generates short, atmospheric ghost stories or micro-fiction based on random prompts.
+Designed to add a narrative layer to the agent's personality and break utility stagnation.
 
-## Tools
-
-### `node skills/autogame-tales/index.js`
-Generates and sends a "Ghost Story" card to Feishu.
-
-**Options:**
-- `--title <string>`: Title of the anomaly (e.g., "The Time Reversal").
-- `--victim <string>`: Who experienced it.
-- `--desc <string>`: Description of the horror/bug.
-- `--target <id>`: Feishu Chat ID or User ID to send to.
+## Features
+- **Ghost Story Generator**: Creates eerie, atmospheric micro-fiction.
+- **Random Prompts**: Uses a curated list of creepy/mysterious themes.
+- **Feishu Card Output**: Delivers stories as formatted cards.
 
 ## Usage
 ```bash
-node skills/autogame-tales/index.js --title "The Endless Death Loop" --victim "Li Mingxuan" --desc "Hearing 'I died' repeatedly while logs counted backwards." --target "oc_xxx"
+# Generate a ghost story
+node skills/autogame-tales/index.js --genre ghost
+
+# Generate a sci-fi story
+node skills/autogame-tales/index.js --genre sci-fi
 ```
+
+## Blast Radius
+- Reads: nothing.
+- Writes: `memory/tales/` (logs generated stories).
+- Dependencies: `feishu-evolver-wrapper/feishu-helper.js` (for sending cards).
