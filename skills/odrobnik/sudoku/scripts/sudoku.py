@@ -183,6 +183,20 @@ def fetch_puzzles(url: str) -> List[Dict[str, Any]]:
     return parse_preloaded_puzzles(r.text)
 
 
+def _previously_used_puzzle_ids() -> set[str]:
+    """Return the set of puzzle IDs (full UUID) already stored on disk."""
+    used: set[str] = set()
+    for path in list_puzzle_jsons():
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+            pid = doc.get("picked", {}).get("id")
+            if pid:
+                used.add(str(pid))
+        except (json.JSONDecodeError, OSError):
+            continue
+    return used
+
+
 def pick_puzzle(
     puzzles: List[Dict[str, Any]],
     *,
@@ -206,9 +220,14 @@ def pick_puzzle(
             raise ValueError(f"index out of range: {index} (have {len(puzzles)} puzzles)")
         return puzzles[i], i
 
+    # Random selection — prefer puzzles not yet fetched.
+    used_ids = _previously_used_puzzle_ids()
+    fresh = [(i, p) for i, p in enumerate(puzzles) if str(p.get("id")) not in used_ids]
+    pool = fresh if fresh else list(enumerate(puzzles))  # fall back to all if every puzzle was used
+
     rng = random.Random(seed)
-    i = rng.randrange(len(puzzles))
-    return puzzles[i], i
+    i, puzzle = pool[rng.randrange(len(pool))]
+    return puzzle, i
 
 
 def format_cell_value(val: int, letters_mode: bool) -> str:
