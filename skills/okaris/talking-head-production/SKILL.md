@@ -1,12 +1,6 @@
 ---
 name: talking-head-production
-description: |
-  Talking head video production with AI avatars, lipsync, and voiceover.
-  Covers portrait requirements, audio quality, OmniHuman, PixVerse lipsync, Dia TTS.
-  Use for: spokesperson videos, course content, social media, presentations, demos.
-  Triggers: talking head, avatar video, lipsync, lip sync, ai spokesperson,
-  virtual presenter, ai presenter, omnihuman, talking avatar, video presenter,
-  ai talking head, presenter video, ai face video
+description: "Talking head video production with AI avatars, lipsync, and voiceover. Covers portrait requirements, audio quality, OmniHuman, PixVerse lipsync, Dia TTS. Use for: spokesperson videos, course content, social media, presentations, demos. Triggers: talking head, avatar video, lipsync, lip sync, ai spokesperson, virtual presenter, ai presenter, omnihuman, talking avatar, video presenter, ai talking head, presenter video, ai face video"
 allowed-tools: Bash(infsh *)
 ---
 
@@ -30,6 +24,8 @@ infsh app run bytedance/omnihuman-1-5 --input '{
   "audio": "path/to/dialogue.mp3"
 }'
 ```
+
+> **Install note:** The [install script](https://cli.inference.sh) only detects your OS/architecture, downloads the matching binary from `dist.inference.sh`, and verifies its SHA-256 checksum. No elevated permissions or background processes. [Manual install & verification](https://dist.inference.sh/cli/checksums.txt) available.
 
 ## Portrait Requirements
 
@@ -202,9 +198,9 @@ infsh app run bytedance/omnihuman-1-5 --input '{
 ## Related Skills
 
 ```bash
-npx skills add inferencesh/skills@ai-avatar-video
-npx skills add inferencesh/skills@ai-video-generation
-npx skills add inferencesh/skills@text-to-speech
+npx skills add inference-sh/skills@ai-avatar-video
+npx skills add inference-sh/skills@ai-video-generation
+npx skills add inference-sh/skills@text-to-speech
 ```
 
 Browse all apps: `infsh app list`
