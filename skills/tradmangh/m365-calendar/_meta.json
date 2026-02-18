@@ -1,0 +1,11 @@
+{
+  "owner": "tradmangh",
+  "slug": "m365-calendar",
+  "displayName": "M365 Calendar (Graph)",
+  "latest": {
+    "version": "0.1.2",
+    "publishedAt": 1771413921541,
+    "commit": null
+  },
+  "history": []
+}
