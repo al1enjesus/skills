@@ -1,11 +1,6 @@
 ---
 name: case-study-writing
-description: |
-  B2B case study writing with STAR framework, data visualization, and research.
-  Covers structure, customer quotes, metrics presentation, and distribution formats.
-  Use for: customer success stories, portfolio pieces, sales enablement, marketing content.
-  Triggers: case study, customer story, success story, b2b case study, client testimonial,
-  customer case study, portfolio case study, use case, customer win, results story
+description: "B2B case study writing with STAR framework, data visualization, and research. Covers structure, customer quotes, metrics presentation, and distribution formats. Use for: customer success stories, portfolio pieces, sales enablement, marketing content. Triggers: case study, customer story, success story, b2b case study, client testimonial, customer case study, portfolio case study, use case, customer win, results story"
 allowed-tools: Bash(infsh *)
 ---
 
@@ -23,6 +18,8 @@ infsh app run tavily/search-assistant --input '{
   "query": "SaaS customer onboarding challenges 2024 statistics"
 }'
 ```
+
+> **Install note:** The [install script](https://cli.inference.sh) only detects your OS/architecture, downloads the matching binary from `dist.inference.sh`, and verifies its SHA-256 checksum. No elevated permissions or background processes. [Manual install & verification](https://dist.inference.sh/cli/checksums.txt) available.
 
 ## The STAR Framework
 
@@ -231,8 +228,8 @@ Read the full story → [link]"
 ## Related Skills
 
 ```bash
-npx skills add inferencesh/skills@web-search
-npx skills add inferencesh/skills@prompt-engineering
+npx skills add inference-sh/skills@web-search
+npx skills add inference-sh/skills@prompt-engineering
 ```
 
 Browse all apps: `infsh app list`
