@@ -1,0 +1,11 @@
+{
+  "owner": "mike-thebot",
+  "slug": "intel-synthesis",
+  "displayName": "Intel Synthesis",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1771335860807,
+    "commit": null
+  },
+  "history": []
+}
