@@ -1,12 +1,16 @@
 {
   "name": "bear-blog-publisher",
-  "version": "1.0.0",
-  "description": "Auto-publish blog posts to Bear Blog - supports both AI-generated content and user-provided markdown.",
+  "version": "1.0.2",
+  "description": "Publish blog posts to Bear Blog - supports user-provided markdown, AI-generated content, and auto-generated diagrams.",
   "author": "OpenClaw Community",
   "license": "MIT",
+  "homepage": "https://github.com/CatTalk2/bear-blog-publisher",
+  "bugs": {
+    "url": "https://github.com/CatTalk2/bear-blog-publisher/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/bear-blog-publisher"
+    "url": "https://github.com/CatTalk2/bear-blog-publisher.git"
   },
   "keywords": [
     "bearblog",
@@ -18,7 +22,7 @@
   "openclaw": {
     "requires": {
       "bins": ["python3"],
-      "python": ["requests"]
+      "python": ["requests", "playwright"]
     },
     "install": [
       {
@@ -40,6 +44,12 @@
       },
       "BEAR_BLOG_PASSWORD": {
         "description": "Bear Blog password (optional, can also use config file or runtime params)"
+      },
+      "OPENAI_API_KEY": {
+        "description": "OpenAI API key for AI content generation (optional)"
+      },
+      "KIMI_API_KEY": {
+        "description": "Kimi API key for AI content generation (optional)"
       }
     },
     "config": {

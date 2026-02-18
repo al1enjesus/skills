@@ -1,6 +1,6 @@
 ---
 name: bear-blog-publisher
-description: Publish blog posts to Bear Blog platform. Supports AI-generated content, user-provided markdown, and auto-generated diagrams.
+description: Publish blog posts to Bear Blog platform. Supports user-provided markdown, AI-generated content, and auto-generated diagrams.
 ---
 
 # Bear Blog Publisher
@@ -9,7 +9,7 @@ Publish blog posts to Bear Blog (https://bearblog.dev/).
 
 ## Overview
 
-This skill provides automated publishing capabilities for Bear Blog.
+This skill provides automated publishing capabilities for Bear Blog, including optional AI content generation and diagram generation.
 
 ## Authentication Methods (Choose One)
 
@@ -49,6 +49,35 @@ publisher = BearBlogPublisher(email="user@example.com", password="secret")
 
 **Security**: Caller (chat bot, web app, etc.) manages credential lifecycle.
 
+## AI Content Generation (Optional)
+
+To use AI content generation, configure one of the following:
+
+### OpenAI
+
+```bash
+export OPENAI_API_KEY="sk-..."
+```
+
+### Kimi
+
+```bash
+export KIMI_API_KEY="your-kimi-api-key"
+```
+
+### Usage
+
+```python
+publisher = BearBlogPublisher()
+content = publisher.generate_content(
+    topic="Python best practices",
+    provider="openai",  # or "kimi"
+    tone="professional",
+    length="medium"
+)
+result = publisher.publish(title="My Post", content=content)
+```
+
 ## Priority Order
 
 1. Runtime parameters (highest priority)
@@ -68,13 +97,13 @@ publisher = BearBlogPublisher(email="user@example.com", password="secret")
 **Output:**
 - Published URL or error message
 
-### 2. Generate Content (Optional)
+### 2. AI Content Generation (Optional)
 
-If `content` is not provided, generates based on `topic`.
+Generate blog content using OpenAI or Kimi API.
 
 ### 3. Generate Diagram (Optional)
 
-For technical topics, generates architecture diagrams.
+For technical topics, generates architecture diagrams using HTML/CSS + Playwright.
 
 ## Security Best Practices
 
@@ -82,6 +111,30 @@ For technical topics, generates architecture diagrams.
 2. **Use environment variables in production**
 3. **Set file permissions to 600 for config files**
 4. **Use runtime parameters for multi-user scenarios**
+
+## Security Considerations
+
+This skill makes several operational choices that users should be aware of:
+
+### 1. Playwright Browser Download
+- **Why**: Required for generating architecture diagrams as PNG images
+- **Size**: ~100MB Chromium browser
+- **Alternative**: Skip diagram generation if not needed
+
+### 2. Temporary Files
+- **Location**: `/tmp/diagram.html` and `/tmp/diagram.png`
+- **Purpose**: Intermediate files for diagram generation
+- **Cleanup**: Files are overwritten on each run, not explicitly deleted
+
+### 3. `--no-sandbox` Flag
+- **Why**: Required for running Chromium in containerized/Docker environments
+- **Risk**: Slightly reduced browser isolation
+- **Mitigation**: Only used for local HTML-to-image conversion, no external URLs loaded
+
+### 4. Plaintext Password Storage (Optional)
+- **Config file**: Only if user chooses Method 1
+- **Recommendation**: Use environment variables (Method 2) or runtime parameters (Method 3) instead
+- **If using config**: Always set file permissions to 600
 
 ## Example Usage
 
@@ -103,6 +156,17 @@ You: "Publish a blog about Python tips"
 AI: [Uses env vars, publishes]
 ```
 
+### With AI Content Generation
+
+```bash
+export BEAR_BLOG_EMAIL="user@example.com"
+export BEAR_BLOG_PASSWORD="secret"
+export OPENAI_API_KEY="sk-..."
+
+You: "Write and publish a blog about Python asyncio"
+AI: [Generates content with OpenAI, publishes]
+```
+
 ### With Runtime Parameters
 
 ```python
@@ -120,6 +184,7 @@ result = publisher.publish(title="My Post", content="# Content")
 - CSRF token authentication
 - Session-based (no persistent storage)
 - Playwright for diagram generation
+- OpenAI/Kimi API for content generation
 
 ## License
 

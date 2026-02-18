@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Bear Blog Publisher - Core Module
-Supports 3 authentication methods with security best practices
+Supports 3 authentication methods and optional AI content generation
 """
 
 import requests
@@ -9,7 +9,7 @@ import re
 import json
 import os
 import stat
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Literal
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -71,6 +71,145 @@ class BearBlogPublisher:
         
         return None, None
     
+    def generate_content(self, topic: str, provider: Literal['openai', 'kimi'] = 'openai', 
+                        tone: str = 'professional', length: str = 'medium') -> str:
+        """
+        Generate blog content using AI.
+        
+        Args:
+            topic: What to write about
+            provider: LLM provider ('openai' or 'kimi')
+            tone: Writing style (professional, casual, technical)
+            length: short, medium, or long
+            
+        Returns:
+            Generated markdown content
+        """
+        length_words = {'short': '300-500', 'medium': '800-1200', 'long': '1500-2500'}
+        word_count = length_words.get(length, '800-1200')
+        
+        prompt = f"""Write a blog post about: {topic}
+
+Requirements:
+- Tone: {tone}
+- Length: {word_count} words
+- Format: Markdown
+- Include: Introduction, main content with examples, conclusion
+- Use proper markdown formatting (headers, lists, code blocks if relevant)
+
+Write the content now:"""
+
+        if provider == 'openai':
+            return self._generate_openai(prompt)
+        elif provider == 'kimi':
+            return self._generate_kimi(prompt)
+        else:
+            raise ValueError(f"Unsupported provider: {provider}")
+    
+    def _generate_openai(self, prompt: str) -> str:
+        """Generate content using OpenAI API"""
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set")
+        
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-4",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": 2000
+            }
+        )
+        response.raise_for_status()
+        return response.json()['choices'][0]['message']['content']
+    
+    def _generate_kimi(self, prompt: str) -> str:
+        """Generate content using Kimi API"""
+        api_key = os.environ.get('KIMI_API_KEY')
+        if not api_key:
+            raise ValueError("KIMI_API_KEY environment variable not set")
+        
+        response = requests.post(
+            "https://api.moonshot.cn/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "kimi-k2.5",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": 2000
+            }
+        )
+        response.raise_for_status()
+        return response.json()['choices'][0]['message']['content']
+    
+    def upload_image(self, image_path: str) -> Dict[str, Any]:
+        """
+        Upload an image to Bear Blog and return the URL.
+        
+        Args:
+            image_path: Path to the image file
+            
+        Returns:
+            Dict with 'success' (bool) and 'url' (str) or 'error' (str)
+        """
+        try:
+            if not os.path.exists(image_path):
+                return {'success': False, 'error': f'File not found: {image_path}'}
+            
+            session = requests.Session()
+            
+            # Login
+            login_page = session.get("https://bearblog.dev/accounts/login/")
+            csrf_match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', login_page.text)
+            if not csrf_match:
+                return {'success': False, 'error': 'Could not get CSRF token'}
+            
+            csrf_token = csrf_match.group(1)
+            
+            login_data = {
+                'csrfmiddlewaretoken': csrf_token,
+                'login': self.email,
+                'password': self.password,
+                'remember': 'on'
+            }
+            headers = {
+                'Referer': 'https://bearblog.dev/accounts/login/',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36'
+            }
+            
+            session.post("https://bearblog.dev/accounts/login/", 
+                      data=login_data, headers=headers, allow_redirects=True)
+            
+            # Upload image
+            upload_url = "https://bearblog.dev/cattalk/dashboard/upload-image/"
+            with open(image_path, 'rb') as f:
+                files = {'file': (os.path.basename(image_path), f, 'image/png')}
+                upload_response = session.post(upload_url, files=files,
+                                             headers={'Referer': 'https://bearblog.dev/cattalk/dashboard/posts/'})
+            
+            if upload_response.status_code == 200:
+                try:
+                    image_urls = json.loads(upload_response.text)
+                    if image_urls and len(image_urls) > 0:
+                        return {'success': True, 'url': image_urls[0]}
+                    else:
+                        return {'success': False, 'error': 'No URL returned from upload'}
+                except json.JSONDecodeError as e:
+                    return {'success': False, 'error': f'Invalid JSON response: {e}'}
+            else:
+                return {'success': False, 'error': f'HTTP {upload_response.status_code}: {upload_response.text}'}
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
     def publish(self, title: str, content: str, image_path: Optional[str] = None) -> Dict[str, Any]:
         """
         Publish a blog post.
@@ -111,26 +250,48 @@ class BearBlogPublisher:
             # Upload image if provided
             image_url = None
             if image_path and os.path.exists(image_path):
-                upload_url = "https://bearblog.dev/cattalk/dashboard/upload-image/"
-                with open(image_path, 'rb') as f:
-                    files = {'file': ('image.png', f, 'image/png')}
-                    upload_response = session.post(upload_url, files=files,
-                                                 headers={'Referer': 'https://bearblog.dev/cattalk/dashboard/posts/'})
-                if upload_response.status_code == 200:
-                    image_urls = json.loads(upload_response.text)
-                    if image_urls:
-                        image_url = image_urls[0]
+                try:
+                    upload_url = "https://bearblog.dev/cattalk/dashboard/upload-image/"
+                    with open(image_path, 'rb') as f:
+                        files = {'file': (os.path.basename(image_path), f, 'image/png')}
+                        upload_response = session.post(upload_url, files=files,
+                                                     headers={'Referer': 'https://bearblog.dev/cattalk/dashboard/posts/'})
+                    if upload_response.status_code == 200:
+                        try:
+                            image_urls = json.loads(upload_response.text)
+                            if image_urls and len(image_urls) > 0:
+                                image_url = image_urls[0]
+                                print(f"Image uploaded: {image_url}")
+                        except json.JSONDecodeError:
+                            print(f"Image upload response: {upload_response.text}")
+                    else:
+                        print(f"Image upload failed: HTTP {upload_response.status_code}")
+                except Exception as e:
+                    print(f"Image upload error: {e}")
             
             # Create post
             new_url = "https://bearblog.dev/cattalk/dashboard/posts/new/"
             new_page = session.get(new_url)
             csrf_match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', new_page.text)
+            if not csrf_match:
+                return {'success': False, 'error': 'Could not get CSRF token for new post'}
             csrf_token = csrf_match.group(1)
             
-            header_content = f"title: {title}"
+            # Remove title from content if it exists (Bear Blog auto-displays title)
             body_content = content
+            # Remove common title patterns from content
+            title_patterns = [
+                rf'^#\s*{re.escape(title)}\s*\n?',
+                rf'^#\s*.*\n\n',
+            ]
+            for pattern in title_patterns:
+                body_content = re.sub(pattern, '', body_content, flags=re.IGNORECASE)
+            
+            # Add image at the beginning if uploaded
             if image_url:
-                body_content = f"![Diagram]({image_url})\n\n{body_content}"
+                body_content = f"![Image]({image_url})\n\n{body_content}"
+            
+            header_content = f"title: {title}"
             
             form_data = {
                 'csrfmiddlewaretoken': csrf_token,
@@ -240,6 +401,8 @@ if __name__ == "__main__":
         print("  1. Command line arguments: email password")
         print("  2. Environment variables: BEAR_BLOG_EMAIL, BEAR_BLOG_PASSWORD")
         print("  3. Config file: ~/.openclaw/openclaw.json")
+        print("")
+        print("For AI content generation, set OPENAI_API_KEY or KIMI_API_KEY")
         sys.exit(1)
     
     title = sys.argv[1]
