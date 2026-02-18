@@ -5,7 +5,7 @@ description: Trade Polymarket BTC 5-minute and 15-minute fast markets using CEX 
 metadata: {"clawdbot":{"emoji":"⚡","requires":{"env":["SIMMER_API_KEY"],"pip":["simmer-sdk"]},"cron":null,"autostart":false}}
 authors:
   - Simmer (@simmer_markets)
-version: "1.0.8"
+version: "1.0.10"
 published: true
 ---
 
@@ -44,13 +44,18 @@ When user asks to install or configure this skill:
    - Get from simmer.markets/dashboard → SDK tab
    - Store in environment as `SIMMER_API_KEY`
 
-2. **Ask about settings** (or confirm defaults)
+2. **Ask for wallet private key** (required for live trading)
+   - This is the private key for their Polymarket wallet (the wallet that holds USDC)
+   - Store in environment as `WALLET_PRIVATE_KEY`
+   - The SDK uses this to sign orders client-side automatically — no manual signing needed
+
+3. **Ask about settings** (or confirm defaults)
    - Asset: BTC, ETH, or SOL (default BTC)
    - Entry threshold: Min divergence to trade (default 5¢)
    - Max position: Amount per trade (default $5.00)
    - Window: 5m or 15m (default 5m)
 
-3. **Set up cron or loop** (user drives scheduling — see "How to Run on a Loop")
+4. **Set up cron or loop** (user drives scheduling — see "How to Run on a Loop")
 
 ## Quick Start
 
@@ -235,3 +240,14 @@ All trades are tagged with `source: "sdk:fastloop"`. This means:
 
 **"Trade failed: no liquidity"**
 - Fast market has thin book, try smaller position size
+
+**"External wallet requires a pre-signed order"**
+- `WALLET_PRIVATE_KEY` is not set in the environment
+- The SDK signs orders automatically when this env var is present — no manual signing code needed
+- Fix: `export WALLET_PRIVATE_KEY=0x<your-polymarket-wallet-private-key>`
+- Do NOT attempt to sign orders manually or modify the skill code — the SDK handles it
+
+**"Balance shows $0 but I have USDC on Polygon"**
+- Polymarket uses **USDC.e** (bridged USDC, contract `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`) — not native USDC
+- If you bridged USDC to Polygon recently, you likely received native USDC
+- Swap native USDC to USDC.e, then retry
