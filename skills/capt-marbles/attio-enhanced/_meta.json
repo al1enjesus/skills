@@ -1,11 +1,17 @@
 {
   "owner": "capt-marbles",
   "slug": "attio-enhanced",
-  "displayName": "Attio Full API",
+  "displayName": "Attio Enhanced CRM",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771278694208,
-    "commit": "https://github.com/openclaw/skills/commit/f04293cf0d9bb2cd2aa64ee16d101425b35b07af"
+    "version": "1.0.1",
+    "publishedAt": 1771343298283,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771278694208,
+      "commit": "https://github.com/openclaw/skills/commit/f04293cf0d9bb2cd2aa64ee16d101425b35b07af"
+    }
+  ]
 }

@@ -1,66 +1,56 @@
 # Enhanced Attio Skill
 
-An improved Attio CRM skill with batch operations, error handling, and validation.
+Enhanced Attio CRM API skill with batch operations.
 
-## Features
+## ⚠️ Required Setup
 
-- **Batch Operations**: Bulk create/update records with chunking
-- **Retry Logic**: Exponential backoff for rate limits
-- **Smart Field Mapping**: Auto-transforms fields to Attio format
-- **Company & Person Support**: Create companies, people, deals
-
-## Setup
+This skill requires Attio credentials. You must set these environment variables before use:
 
 ```bash
-# Set environment variables
 export ATTIO_API_KEY=your_api_key
-export ATTIO_WORKSPACE_ID=your_workspace
+export ATTIO_WORKSPACE_ID=your_workspace_id
 ```
 
 Get API key from: https://app.attio.com/settings/api
 
+Find workspace ID in your Attio URL: `app.attio.com/[workspace-id]/...`
+
+## Features
+
+- **Batch Operations**: Bulk create/update records
+- **Retry Logic**: Exponential backoff for rate limits
+- **Smart Field Mapping**: Auto-transforms fields to Attio format
+- **Company & Person Support**: Create companies, people, deals
+
 ## Usage
 
-### Create Companies
+### Python
 
 ```python
+import os
+os.environ['ATTIO_API_KEY'] = 'your_key'
+os.environ['ATTIO_WORKSPACE_ID'] = 'your_workspace'
+
 from lib.attio_enhanced import AttioEnhancedClient
 
 async with AttioEnhancedClient() as client:
-    # Single company
+    # Create companies
     await client.batch_create_records('companies', [{'name': 'Gameye'}])
     
-    # Batch
-    await client.batch_create_records('companies', [
-        {'name': 'Company A'},
-        {'name': 'Company B'}
+    # Create people
+    await client.batch_create_records('people', [
+        {'name': ['John Doe'], 'email_addresses': ['john@example.com']}
     ])
 ```
 
-### Create People
+### CLI Test
 
-```python
-await client.batch_create_records('people', [
-    {'name': ['John Doe'], 'email_addresses': ['john@example.com']}
-])
-```
-
-### Create Deals
-
-```python
-# Deals require owner (workspace member) - use Attio UI for now
+```bash
+python3 -c "from lib.attio_enhanced import AttioEnhancedClient; print('OK')"
 ```
 
 ## Field Mapping
 
-The skill auto-transforms common fields:
 - `first_name` + `last_name` → Attio name format
 - `email` → email_addresses
 - Org → companies
-
-## CLI
-
-```bash
-# Test connection
-python -c "from lib.attio_enhanced import AttioEnhancedClient; print('OK')"
-```
