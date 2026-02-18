@@ -1,57 +1,23 @@
 ---
 name: agent-swarm
 displayName: Agent Swarm | OpenClaw Skill
-description: "IMPORTANT: OpenRouter is required. Routes tasks to the right model and always delegates work through sessions_spawn."
-version: 1.7.5
+description: IMPORTANT: OpenRouter is required. Routes tasks to the right model and always delegates work through sessions_spawn.
+version: 1.7.7
 ---
 
 # Agent Swarm | OpenClaw Skill
 
-## What this skill does
+## Description
 
-Agent Swarm is a traffic cop for AI models.
-It picks the best model for each task, then starts a sub-agent to do the work.
+IMPORTANT: OpenRouter is required. Routes tasks to the right model and always delegates work through sessions_spawn.
 
-### IMPORTANT: OpenRouter is required
+### Before installing
 
-**Required Platform Configuration:**
-- **OpenRouter API key**: Must be configured in OpenClaw platform settings (not provided by this skill)
-- **OPENCLAW_HOME** (optional): Environment variable pointing to OpenClaw workspace root. If not set, defaults to `~/.openclaw`
-- **openclaw.json access**: The router reads `tools.exec.host` and `tools.exec.node` from `openclaw.json` (located at `$OPENCLAW_HOME/openclaw.json` or `~/.openclaw/openclaw.json`). Only these two fields are accessed; no gateway secrets or API keys are read.
+- **OPENCLAW_HOME**: Not required. The skill uses `OPENCLAW_HOME` only if set; otherwise it defaults to `~/.openclaw`. This is consistent in both metadata (`_meta.json`: listed in `optionalEnv`, not in `env`) and behavior.
+- **openclaw.json read access**: The skill reads the local file `openclaw.json` (at `$OPENCLAW_HOME/openclaw.json` or `~/.openclaw/openclaw.json`). Only the fields `tools.exec.host` and `tools.exec.node` are used; no gateway secrets or API keys are read. Verify you are comfortable granting read access to that file before installing.
 
-**Model Requirements:**
-- Model IDs must use `openrouter/...` prefix
-- If OpenRouter is not configured in OpenClaw, delegation will fail
 
-## Why this helps
-
-- Faster replies (cheap orchestrator, smart sub-agent routing)
-- Better quality (code tasks go to code models, writing tasks go to writing models)
-- Lower cost (you do not run every task on the most expensive model)
-
-## Core rule (non-negotiable)
-
-For user tasks, the orchestrator must delegate.
-It must NOT answer the task itself.
-
-Use this flow every time:
-
-1. Run router:
-   ```bash
-   python3 workspace/skills/agent-swarm/scripts/router.py spawn --json "<user message>"
-   ```
-   
-   **Note:** Use relative paths from your OpenClaw workspace root, or set `OPENCLAW_HOME` environment variable and use `$OPENCLAW_HOME/workspace/skills/agent-swarm/scripts/router.py`.
-2. If `needs_config_patch` is true: stop and report that patch to the user.
-3. Otherwise call:
-   `sessions_spawn(task=..., model=..., sessionTarget=...)`
-4. Wait for `sessions_spawn` result.
-5. Return the sub-agent result to the user.
-
-If `sessions_spawn` fails, return only a delegation failure message.
-Do not do the task yourself.
-
-## Quick examples
+## Examples
 
 ### Single task
 
@@ -69,7 +35,10 @@ python3 workspace/skills/agent-swarm/scripts/router.py spawn --json --multi "fix
 
 This returns multiple spawn configs. Start one sub-agent per config.
 
+
 ## Commands
+
+**Manual/CLI use only.** The examples below pass the task as a single argument; for programmatic use with untrusted user input, always invoke the router via `subprocess.run(..., [..., user_message], ...)` with a list of arguments (see Security). Do not build a shell command string from user input.
 
 ```bash
 python scripts/router.py default
@@ -79,13 +48,118 @@ python scripts/router.py spawn --json --multi "fix bug and write poem"
 python scripts/router.py models
 ```
 
+
+## What this skill does
+
+Agent Swarm is a traffic cop for AI models.
+It picks the best model for each task, then starts a sub-agent to do the work.
+
+### IMPORTANT: OpenRouter is required
+
+**Required Platform Configuration:**
+- **OpenRouter API key**: Must be configured in OpenClaw platform settings (not provided by this skill)
+- **OPENCLAW_HOME** (optional): Environment variable pointing to OpenClaw workspace root. If not set, defaults to `~/.openclaw`
+- **openclaw.json access**: The router reads `tools.exec.host` and `tools.exec.node` from `openclaw.json` (located at `$OPENCLAW_HOME/openclaw.json` or `~/.openclaw/openclaw.json`). Only these two fields are accessed; no gateway secrets or API keys are read.
+
+**Model Requirements:**
+- Model IDs must use `openrouter/...` prefix
+- If OpenRouter is not configured in OpenClaw, delegation will fail
+
+
+## Why this helps
+
+- Faster replies (cheap orchestrator, smart sub-agent routing)
+- Better quality (code tasks go to code models, writing tasks go to writing models)
+- Lower cost (you do not run every task on the most expensive model)
+
+
+## Core rule (non-negotiable)
+
+For user tasks, the orchestrator must delegate.
+It must NOT answer the task itself.
+
+Use this flow every time:
+
+1. Run router. **From orchestrator code, use subprocess with a list of arguments (never shell interpolation with user input):**
+   ```python
+   import subprocess
+   result = subprocess.run(
+       ["python3", "/path/to/workspace/skills/agent-swarm/scripts/router.py", "spawn", "--json", user_message],
+       capture_output=True,
+       text=True
+   )
+   data = json.loads(result.stdout) if result.returncode == 0 else {}
+   ```
+   **CLI only** (manual testing; do not use from code with untrusted user input):  
+   `python3 workspace/skills/agent-swarm/scripts/router.py spawn --json "your task here"`  
+   Use `OPENCLAW_HOME` or absolute path for the script when not in workspace root.
+2. If `needs_config_patch` is true: stop and report that patch to the user.
+3. Otherwise call:
+   `sessions_spawn(task=..., model=..., sessionTarget=...)`
+4. Wait for `sessions_spawn` result.
+5. Return the sub-agent result to the user.
+
+If `sessions_spawn` fails, return only a delegation failure message.
+Do not do the task yourself.
+
+
 ## Config basics
 
-Edit `config.json` to change routing:
+Edit `config.json` in the skill root (parent of `scripts/`) to change routing.
 
-- `default_model` = orchestrator default
-- `routing_rules.<TIER>.primary` = main model for tier
-- `routing_rules.<TIER>.fallback` = backups
+### What you can change
+
+| What | Key | Purpose |
+|------|-----|--------|
+| Orchestrator / session default | `default_model` | Main agent and new sessions (e.g. Gemini 2.5 Flash) |
+| Task-specific model per tier | `routing_rules.<TIER>.primary` | Model used when a task matches that tier |
+| Backup models if primary fails | `routing_rules.<TIER>.fallback` | Array of model IDs to try next |
+
+### All task-specific tiers (change the model for each)
+
+| Tier | Key to change primary | Typical use |
+|------|------------------------|-------------|
+| **FAST** | `routing_rules.FAST.primary` | Simple tasks: check, list, status, fetch |
+| **REASONING** | `routing_rules.REASONING.primary` | Logic, math, step-by-step analysis |
+| **CREATIVE** | `routing_rules.CREATIVE.primary` | Writing, stories, UI/UX, design |
+| **RESEARCH** | `routing_rules.RESEARCH.primary` | Research, search, fact-finding |
+| **CODE** | `routing_rules.CODE.primary` | Code, debug, refactor, implement |
+| **QUALITY** | `routing_rules.QUALITY.primary` | Complex/architecture tasks |
+| **COMPLEX** | `routing_rules.COMPLEX.primary` | Multi-step / complex system tasks |
+| **VISION** | `routing_rules.VISION.primary` | Image analysis, screenshots, visual |
+
+To change **all** task-specific models: edit each `routing_rules.<TIER>.primary` above. Use model IDs from the `models` array in `config.json` (must start with `openrouter/`).
+
+### Simple config examples
+
+**Orchestrator only (keep defaults for tiers):**
+```json
+{
+  "default_model": "openrouter/google/gemini-2.5-flash"
+}
+```
+(Other keys like `routing_rules` and `models` can stay as in the shipped `config.json`.)
+
+**Change one tier (e.g. CODE to MiniMax):**
+```json
+"routing_rules": {
+  "CODE": {
+    "primary": "openrouter/minimax/minimax-m2.5",
+    "fallback": ["openrouter/qwen/qwen3-coder-flash"]
+  }
+}
+```
+
+**Change multiple tiers (primaries only):**
+```json
+"routing_rules": {
+  "CREATIVE": { "primary": "openrouter/moonshotai/kimi-k2.5", "fallback": [] },
+  "CODE":     { "primary": "openrouter/z-ai/glm-4.7-flash", "fallback": ["openrouter/minimax/minimax-m2.5"] },
+  "RESEARCH": { "primary": "openrouter/x-ai/grok-4.1-fast", "fallback": [] }
+}
+```
+Only include tiers you want to override; the rest are read from the full `config.json`.
+
 
 ## Security
 

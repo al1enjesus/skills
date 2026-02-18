@@ -27,8 +27,8 @@ With a single model, OpenClaw can feel slow: you're forced to choose between qua
 
 **Platform Configuration Required:**
 - **OpenRouter API key**: Must be configured in OpenClaw platform settings (not provided by this skill)
-- **OPENCLAW_HOME** (optional): Environment variable pointing to OpenClaw workspace root. If not set, defaults to `~/.openclaw`
-- **openclaw.json access**: The router reads `tools.exec.host` and `tools.exec.node` from `openclaw.json` (located at `$OPENCLAW_HOME/openclaw.json` or `~/.openclaw/openclaw.json`). Only these two fields are accessed; no gateway secrets or API keys are read.
+- **OPENCLAW_HOME** (optional, not required): Environment variable pointing to OpenClaw workspace root. If unset, the skill defaults to `~/.openclaw`. Metadata (`_meta.json`) lists it in `optionalEnv` only, never in required `env`.
+- **openclaw.json access**: The router reads `tools.exec.host` and `tools.exec.node` from `openclaw.json` (at `$OPENCLAW_HOME/openclaw.json` or `~/.openclaw/openclaw.json`). Only these two fields are accessed; no gateway secrets or API keys are read. Before installing, verify you are comfortable granting read access to that file.
 
 **Model Requirements:**
 - **OpenRouter is mandatory** — All model delegation uses OpenRouter (`openrouter/...` prefix). Configure OpenClaw with an OpenRouter API key so one auth profile covers every model.
@@ -102,15 +102,15 @@ The router delegates tasks to tier-specific sub-agents (Kimi for creative, GLM 4
 
 The **main agent (Gemini 2.5 Flash)** does not do user tasks itself. For every user **task** (code, research, write, build, etc.):
 
-1. Run Agent Swarm router: `python scripts/router.py spawn --json "<user message>"` and parse the JSON.
+1. Run Agent Swarm router. **From code, use subprocess with a list of arguments** (see Safe Execution below); do not pass user message via shell. Parse the JSON output.
 2. Call **sessions_spawn** with the `task` and `model` from the router output (use the exact `model` value).
 3. Forward the sub-agent's result to the user.
 
-**Example:**
-```
-router: {"task":"write a poem","model":"openrouter/moonshotai/kimi-k2.5","sessionTarget":"isolated"}
-→ sessions_spawn(task="write a poem", model="openrouter/moonshotai/kimi-k2.5", sessionTarget="isolated")
-→ Forward Kimi k2.5's poem to user. Say "Using: Kimi k2.5".
+**Example (invoke router via subprocess list args, not shell):**
+```python
+subprocess.run(["python3", "/path/to/scripts/router.py", "spawn", "--json", user_message], capture_output=True, text=True)
+# → parse JSON → sessions_spawn(task=..., model=..., sessionTarget=...)
+# → Forward sub-agent result. Say "Using: Kimi k2.5" when that model was used.
 ```
 
 **Exception:** Meta-questions ("what model are you?") you answer yourself.
@@ -148,14 +148,56 @@ python scripts/router.py classify "your task description"
 
 ## Default agents (edit in config.json)
 
-All defaults are in **`config.json`**. Edit these two places to change which model runs for each tier:
+All defaults are in **`config.json`** (skill root, parent of `scripts/`). Change the orchestrator or any task-specific model by editing:
 
 | What to edit | Key in config.json | Purpose |
 |--------------|--------------------|---------|
 | Session default / orchestrator | `default_model` | Model for new sessions and the main agent |
-| Per-tier primary | `routing_rules.<TIER>.primary` | Model used when a task matches that tier (FAST, CODE, CREATIVE, etc.) |
+| Per-tier primary | `routing_rules.<TIER>.primary` | Model used when a task matches that tier |
 
-Example: to make CODE use a different model, edit `routing_rules.CODE.primary`. Fallbacks are in `routing_rules.<TIER>.fallback`. The router loads this file from the skill root (parent of `scripts/`).
+### How to change all task-specific models
+
+Each tier has a primary (and optional fallback) model. Edit the **primary** to change which model runs for that task type:
+
+| Tier | Key | Example primary (default) |
+|------|-----|---------------------------|
+| **FAST** | `routing_rules.FAST.primary` | `openrouter/google/gemini-2.5-flash` |
+| **REASONING** | `routing_rules.REASONING.primary` | `openrouter/z-ai/glm-5` |
+| **CREATIVE** | `routing_rules.CREATIVE.primary` | `openrouter/moonshotai/kimi-k2.5` |
+| **RESEARCH** | `routing_rules.RESEARCH.primary` | `openrouter/x-ai/grok-4.1-fast` |
+| **CODE** | `routing_rules.CODE.primary` | `openrouter/z-ai/glm-4.7-flash` |
+| **QUALITY** | `routing_rules.QUALITY.primary` | `openrouter/z-ai/glm-4.7-flash` |
+| **COMPLEX** | `routing_rules.COMPLEX.primary` | `openrouter/z-ai/glm-4.7-flash` |
+| **VISION** | `routing_rules.VISION.primary` | `openrouter/openai/gpt-4o` |
+
+Fallbacks: `routing_rules.<TIER>.fallback` is an array of model IDs to try if the primary fails. Model IDs must start with `openrouter/` (see the `models` array in `config.json` for the full list).
+
+### Simple config examples
+
+**1. Change only the orchestrator (who delegates):**
+```json
+"default_model": "openrouter/google/gemini-2.5-flash"
+```
+
+**2. Change one tier (e.g. CODE to MiniMax):**
+In `config.json`, under `routing_rules.CODE`:
+```json
+"CODE": {
+  "primary": "openrouter/minimax/minimax-m2.5",
+  "fallback": ["openrouter/qwen/qwen3-coder-flash"]
+}
+```
+
+**3. Change several tiers at once:**  
+Edit the corresponding `routing_rules.<TIER>.primary` (and optionally `.fallback`) for FAST, CREATIVE, CODE, etc. Example snippet:
+```json
+"routing_rules": {
+  "FAST":      { "primary": "openrouter/google/gemini-2.5-flash", "fallback": ["openrouter/google/gemini-2.5-flash-lite"] },
+  "CREATIVE":  { "primary": "openrouter/moonshotai/kimi-k2.5", "fallback": [] },
+  "CODE":      { "primary": "openrouter/z-ai/glm-4.7-flash", "fallback": ["openrouter/minimax/minimax-m2.5"] }
+}
+```
+Keep the rest of your existing `routing_rules`; only the tiers you list here need to be present in this snippet if you're pasting into the full file.
 
 ---
 
@@ -177,6 +219,8 @@ Example: to make CODE use a different model, edit `routing_rules.CODE.primary`. 
 ---
 
 ## CLI usage
+
+For manual/terminal use only. From orchestrator code with user-supplied task text, invoke the router via `subprocess.run(..., [..., user_message], ...)` with a list of arguments (see Security); do not build a shell command string.
 
 ```bash
 python scripts/router.py default                          # Show default model
@@ -230,10 +274,25 @@ cost = router.estimate_cost("design landing page")         # → {tier, model, c
 
 ## Changelog
 
+### v1.7.7 (Security warnings / trust alignment)
+
+**Credentials and trust:**
+- **OPENCLAW_HOME**: Explicit everywhere that it is optional (not required). `_meta.json` lists it in `optionalEnv` only; platform config states unset defaults to `~/.openclaw`. SKILL.md and README state "not required" and reference metadata.
+- **openclaw.json**: Platform config and docs now ask installers to verify they are comfortable granting read access; clarified that only `tools.exec.host` and `tools.exec.node` are used. SKILL.md "Before installing" and README requirements updated.
+
+**Safe execution:**
+- Commands/CLI sections in SKILL.md and README explicitly state that bash examples are for manual/CLI use only and that programmatic use must use subprocess with list arguments (no shell interpolation).
+
+### v1.7.6 (VirusTotal / trust review fixes)
+
+**Metadata and documentation alignment:**
+- **OPENCLAW_HOME**: Declared optional in `_meta.json` (`optionalEnv`) to match SKILL.md and README; removed from required `env` list. Defaults to `~/.openclaw` when unset.
+- **Safe execution**: SKILL.md and README now show subprocess-with-list-args as the primary way to invoke the router from code; CLI examples with quoted user message are labeled for manual/CLI use only to reduce command-injection risk from operator error.
+
 ### v1.7.5 (Credential declarations)
 
 **Metadata and documentation improvements:**
-- Added `requires.env` declaration for `OPENCLAW_HOME` in `_meta.json`
+- Declared required vs optional env and platform config in `_meta.json`; OPENCLAW_HOME later clarified as optional in v1.7.6
 - Added `requires.platform.openclaw.config` declarations for OpenRouter API key and openclaw.json access
 - Added `fileAccess` section in `_meta.json` documenting read/write access
 - Enhanced requirements documentation in SKILL.md and README.md
