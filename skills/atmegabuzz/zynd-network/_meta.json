@@ -1,0 +1,11 @@
+{
+  "owner": "atmegabuzz",
+  "slug": "zynd-network",
+  "displayName": "Zynd Agent Network",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1771191566933,
+    "commit": null
+  },
+  "history": []
+}
