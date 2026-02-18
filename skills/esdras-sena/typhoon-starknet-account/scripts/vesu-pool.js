@@ -21,15 +21,9 @@ import { Provider, Contract } from 'starknet';
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { fetchTokens } from '@avnu/avnu-sdk';
 
-const DEFAULT_RPC_URL = 'https://rpc.starknet.lava.build:443';
-const FALLBACK_RPC_URLS = [
-  DEFAULT_RPC_URL,
-  'https://starknet-mainnet.public.blastapi.io/rpc/v0_7',
-  'https://starknet-mainnet.public-rpc.com/rpc/v0_7',
-  'https://rpc.starknet.lava.build:443/rpc/v0_7'
-];
+import { resolveRpcUrl } from './_rpc.js';
+import { fetchVerifiedTokens } from './_tokens.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -103,73 +97,24 @@ function u256ToBigInt(v) {
   return BigInt(String(v));
 }
 
-let tokenCache = null;
-async function getVerifiedTokens() {
-  if (tokenCache) return tokenCache;
-  const resp = await fetchTokens({ page: 0, size: 200, tags: ['Verified'] });
-  tokenCache = resp.content || [];
-  return tokenCache;
+function formatUnits(value, decimals) {
+  const d = Number(decimals ?? 18);
+  const negative = value < 0n;
+  const abs = negative ? -value : value;
+  const base = 10n ** BigInt(d);
+  const whole = abs / base;
+  const frac = abs % base;
+  const fracStr = frac.toString().padStart(d, '0').replace(/0+$/, '');
+  return `${negative ? '-' : ''}${whole.toString()}${fracStr ? `.${fracStr}` : ''}`;
 }
 
 async function resolveToken(symbol) {
-  const tokens = await getVerifiedTokens();
+  const tokens = await fetchVerifiedTokens();
   const t = tokens.find(x => x.symbol?.toLowerCase() === String(symbol || '').toLowerCase());
   if (!t?.address) return null;
   return { symbol: t.symbol, address: t.address, decimals: Number(t.decimals ?? 18) };
 }
 
-// Fallback Vesu Pool ABI (minimal subset for modify_position)
-const VESU_POOL_ABI_FALLBACK = [
-  {
-    "type": "function",
-    "name": "modify_position",
-    "inputs": [
-      {
-        "name": "params",
-        "type": "ModifyPositionParams"
-      }
-    ],
-    "outputs": [],
-    "state_mutability": "external"
-  }
-];
-
-async function fetchAbiViaRpcUrls(address, rpcUrls) {
-  const errs = [];
-  for (const url of rpcUrls) {
-    try {
-      const p = new Provider({ nodeUrl: url });
-      const resp = await p.getClassAt(address);
-      const abi = resp?.abi || [];
-      if (Array.isArray(abi) && abi.length > 0) {
-        return { abi, rpcUrl: url };
-      }
-      errs.push(`empty abi via ${url}`);
-    } catch (e) {
-      errs.push(`${url}: ${e?.message || String(e)}`);
-    }
-  }
-  return { abi: null, rpcUrl: null, errors: errs };
-}
-
-function buildAmountAssetsSigned(baseUnitsBigInt, sign) {
-  // denomination: AmountDenomination::Assets
-  // value: i257 (signed). We'll represent as string with sign.
-  const signed = sign < 0 ? `-${baseUnitsBigInt.toString()}` : baseUnitsBigInt.toString();
-
-  // Try multiple encodings for enums depending on starknet.js ABI expectations.
-  // 1) Cairo1 enum as object variant
-  const enumVariant = { Assets: {} };
-  // 2) fallback numeric discriminant (Native=0, Assets=1)
-  const enumIndex = 1;
-
-  return {
-    // Both keys provided; CallData.compile should pick the ABI-expected one.
-    denomination: enumVariant,
-    denomination_index: enumIndex,
-    value: signed
-  };
-}
 
 async function main() {
   const raw = process.argv[2];
@@ -188,10 +133,10 @@ async function main() {
   const poolName = input.pool || input.poolName;
   const accountAddress = input.accountAddress;
   const user = input.user || accountAddress;
-  const rpcUrl = input.rpcUrl || DEFAULT_RPC_URL;
+  const rpcUrl = resolveRpcUrl();
 
   if (!['supply', 'borrow', 'position', 'stats'].includes(action)) {
-    console.log(JSON.stringify({ success: false, error: 'Unsupported action (expected supply|borrow|position)' }));
+    console.log(JSON.stringify({ success: false, error: 'Unsupported action (expected supply|borrow|position|stats)' }));
     process.exit(1);
   }
 
@@ -227,12 +172,7 @@ async function main() {
 
   const poolAddress = poolCfg.poolAddress;
 
-  // Provider used for onchain calls. For execution we do not need ABI.
   const provider = new Provider({ nodeUrl: rpcUrl });
-
-  // RPC candidates for ABI fetch (quote mode)
-  const rpcUrls = (process.env.VESU_RPC_URLS ? process.env.VESU_RPC_URLS.split(',') : []).map(s => s.trim()).filter(Boolean);
-  const rpcCandidates = rpcUrls.length ? rpcUrls : FALLBACK_RPC_URLS;
 
   // Resolve tokens
   // For Vesu modify_position we need collateral_asset + debt_asset.
@@ -252,9 +192,6 @@ async function main() {
       process.exit(1);
     }
   }
-
-  let collateralInfo = null;
-  let debtInfo = null;
 
   if (normalizedAction === 'position') {
     // Position stats require pair identification.
@@ -286,26 +223,10 @@ async function main() {
       process.exit(1);
     }
 
-    const rpcUrls = (process.env.VESU_RPC_URLS ? process.env.VESU_RPC_URLS.split(',') : []).map(s => s.trim()).filter(Boolean);
-    const rpcCandidates = rpcUrls.length ? rpcUrls : FALLBACK_RPC_URLS;
-
-    const callContractWithFallback = async ({ contractAddress, entrypoint, calldata }) => {
-      let lastErr = null;
-      for (const u of rpcCandidates) {
-        try {
-          const p = new Provider({ nodeUrl: u });
-          return await p.callContract({ contractAddress, entrypoint, calldata });
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-      throw lastErr || new Error('callContract failed');
-    };
-
     // Pool.position(collateral_asset, debt_asset, user) -> (Position, collateral, debt)
     let posRes;
     try {
-      posRes = await callContractWithFallback({
+      posRes = await provider.callContract({
         contractAddress: poolAddress,
         entrypoint: 'position',
         calldata: [String(collateralInfo.address), String(debtInfo.address), String(user)]
@@ -315,8 +236,7 @@ async function main() {
         success: false,
         error: 'Failed to fetch position from pool',
         nextStep: 'RPC_OR_ABI_ERROR',
-        details: e?.message || String(e),
-        hint: 'Set VESU_RPC_URLS to a reliable RPC endpoint that supports callContract for this pool.'
+        details: e?.message || String(e)
       }));
       process.exit(1);
     }
@@ -337,8 +257,8 @@ async function main() {
     const collateralAssets = u256ToBigInt([out[4], out[5]]);
     const debtAssets = u256ToBigInt([out[6], out[7]]);
 
-    const collateralHuman = (Number(collateralAssets) / 10 ** collateralInfo.decimals);
-    const debtHuman = (Number(debtAssets) / 10 ** debtInfo.decimals);
+    const collateralHuman = formatUnits(collateralAssets, collateralInfo.decimals);
+    const debtHuman = formatUnits(debtAssets, debtInfo.decimals);
 
     // Optional: oracle-based LTV if oracleAddress configured and oracle call works
     let ltv = null;
@@ -347,7 +267,7 @@ async function main() {
     if (oracleAddress && isHexAddress(String(oracleAddress))) {
       try {
         const oraclePrice = async (assetAddr) => {
-          const r = await callContractWithFallback({
+          const r = await provider.callContract({
             contractAddress: String(oracleAddress),
             entrypoint: 'price',
             calldata: [String(assetAddr)]
@@ -449,11 +369,6 @@ async function main() {
     // Option 1 UX: if collateralAmount is missing, quote the required collateral and stop.
     if (!input.collateralAmount) {
       try {
-        // --- Read oracle address (no ABI required) ---
-        // Use a dedicated provider for quote calls. If one endpoint is flaky for callContract,
-        // user can override with VESU_RPC_URLS.
-        const quoteProvider = new Provider({ nodeUrl: (rpcCandidates[0] || rpcUrl) });
-
         const oracleAddress = poolCfg.oracleAddress;
         if (!oracleAddress || !isHexAddress(String(oracleAddress))) {
           console.log(JSON.stringify({
@@ -467,45 +382,21 @@ async function main() {
           return;
         }
 
-        // --- Read oracle prices (Oracle.price(asset) -> AssetPrice{value:u256,is_valid:bool}) ---
-        const callContractWithFallback = async ({ contractAddress, entrypoint, calldata }) => {
-          let lastErr = null;
-          for (const u of rpcCandidates) {
-            try {
-              const p = new Provider({ nodeUrl: u });
-              return await p.callContract({ contractAddress, entrypoint, calldata });
-            } catch (e) {
-              lastErr = e;
-            }
-          }
-          throw lastErr || new Error('callContract failed');
-        };
 
         const oraclePrice = async (assetAddr) => {
-          let last = null;
-          for (let attempt = 0; attempt < 3; attempt++) {
-            const r = await callContractWithFallback({
-              contractAddress: String(oracleAddress),
-              entrypoint: 'price',
-              calldata: [String(assetAddr)]
-            });
-            const out = Array.isArray(r) ? r : (r?.result || []);
-            last = out;
-            if (out.length === 0) continue;
-
-            // Expected per docs: AssetPrice { value: u256, is_valid: bool }
-            if (out.length >= 3) {
-              const value = u256ToBigInt([out[0], out[1]]);
-              const isValid = (BigInt(String(out[2])) !== 0n);
-              return { value, isValid };
-            }
-            if (out.length === 2) {
-              const value = u256ToBigInt(out[0]);
-              const isValid = (BigInt(String(out[1])) !== 0n);
-              return { value, isValid };
-            }
+          const r = await provider.callContract({
+            contractAddress: String(oracleAddress),
+            entrypoint: 'price',
+            calldata: [String(assetAddr)]
+          });
+          const out = Array.isArray(r) ? r : (r?.result || []);
+          if (out.length >= 3) {
+            return {
+              value: u256ToBigInt([out[0], out[1]]),
+              isValid: (BigInt(String(out[2])) !== 0n)
+            };
           }
-          throw new Error(`Unexpected oracle.price return shape (len=${last ? last.length : 'null'})`);
+          throw new Error(`Unexpected oracle.price return shape (len=${out.length})`);
         };
 
         const collateralP = await oraclePrice(collateralInfo.address);
@@ -517,7 +408,7 @@ async function main() {
         const dp = debtP.value;
 
         // --- Read pair config max_ltv (no ABI required) ---
-        const pairCall = async (entrypoint) => callContractWithFallback({
+        const pairCall = async (entrypoint) => provider.callContract({
           contractAddress: poolAddress,
           entrypoint,
           calldata: [String(collateralInfo.address), String(debtInfo.address)]

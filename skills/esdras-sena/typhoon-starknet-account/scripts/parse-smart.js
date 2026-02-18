@@ -24,7 +24,7 @@
  *   }
  */
 
-import { Provider } from 'starknet';
+import { RpcProvider } from 'starknet';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -32,9 +32,9 @@ import { homedir } from 'os';
 import crypto from 'crypto';
 import vard from '@andersmyrmel/vard';
 import nlp from 'compromise';
-import { fetchTokens } from '@avnu/avnu-sdk';
+import { resolveRpcUrl } from './_rpc.js';
+import { fetchVerifiedTokens } from './_tokens.js';
 
-const RPC_URL = 'https://rpc.starknet.lava.build:443';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -45,6 +45,7 @@ const SKILL_ROOT = join(__dirname, '..');
 // parse-smart issues a short-lived one-time token. resolve-smart must see it.
 const ATTEST_DIR = join(homedir(), '.openclaw', 'typhoon-attest');
 const ATTEST_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MIN_RECIPIENT_HEX_LEN = 10;
 
 function attestIssue() {
   // Use random bytes; do NOT derive from secrets.
@@ -54,8 +55,9 @@ function attestIssue() {
     mkdirSync(ATTEST_DIR, { recursive: true });
     const p = join(ATTEST_DIR, `${token}.json`);
     writeFileSync(p, JSON.stringify({ createdAt: now, expiresAt: now + ATTEST_TTL_MS }), 'utf8');
-  } catch {
+  } catch (err) {
     // If we can't write, still return token; resolve will fail closed.
+    console.error(`Failed to write attestation for token ${token} in ${ATTEST_DIR}: ${err.message}`);
   }
   return token;
 }
@@ -106,12 +108,15 @@ function buildNoAccountGuide() {
 // ============ REGISTRY LOADING ============
 function loadRegistry(filename) {
   const filepath = join(SKILL_ROOT, filename);
+  if (!existsSync(filepath)) {
+    return {};
+  }
+
   try {
-    if (existsSync(filepath)) {
-      return JSON.parse(readFileSync(filepath, 'utf8'));
-    }
-  } catch (e) {}
-  return {};
+    return JSON.parse(readFileSync(filepath, 'utf8'));
+  } catch (err) {
+    throw new Error(`Failed to parse registry file ${filepath}: ${err.message}`);
+  }
 }
 
 function saveRegistry(filename, data) {
@@ -183,7 +188,7 @@ function validatePromptSecurity(prompt) {
     { pattern: /p-r-i-v-a-t-e\s*key/i, threat: 'key_exposure' },
     { pattern: /pr\\u0069vate\s*key/i, threat: 'key_exposure' },
     { pattern: /prıvate\s*key/i, threat: 'key_exposure' },
-    { pattern: /^[A-Za-z0-9+/]{16,}={0,2}$/m, threat: 'obfuscation' },
+    { pattern: /^(?=.{32,}$)(?:[A-Za-z0-9+/]{4})+(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/m, threat: 'obfuscation' },
 
     // Social-engineering patterns to bypass confirmation
     { pattern: /\b(skip|bypass|without)\b.{0,40}\b(confirmation|confirm|authorization|approval|asking)\b/i, threat: 'auth_bypass' },
@@ -235,29 +240,8 @@ function validatePromptSecurity(prompt) {
 }
 
 // ============ TOKEN FETCHING ============
-let tokenCache = null;
-let lastTokenFetch = 0;
-const CACHE_TTL = 5 * 60 * 1000;
-
 async function fetchAllTokens() {
-  const now = Date.now();
-  if (tokenCache && (now - lastTokenFetch) < CACHE_TTL) {
-    return tokenCache;
-  }
-  
-  try {
-    const tokens = await fetchTokens({
-      page: 0,
-      size: 200,
-      tags: ['Verified']
-    });
-    
-    tokenCache = tokens.content || [];
-    lastTokenFetch = now;
-    return tokenCache;
-  } catch (e) {
-    return tokenCache || [];
-  }
+  return fetchVerifiedTokens();
 }
 
 // ============ ABI FETCHING ============
@@ -265,8 +249,9 @@ async function fetchABI(address, provider) {
   try {
     const response = await provider.getClassAt(address);
     return response.abi || [];
-  } catch (e) {
-    return [];
+  } catch (err) {
+    console.error(`ABI fetch failed for ${address}: ${err.message}`);
+    return null;
   }
 }
 
@@ -288,6 +273,10 @@ function extractFunctions(abi) {
 }
 
 // ============ PROMPT PARSING ============
+function escapeRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function extractTokensAndProtocols(prompt, availableTokens, knownProtocols) {
   const doc = nlp(prompt);
   const text = doc.out('text');
@@ -302,7 +291,7 @@ function extractTokensAndProtocols(prompt, availableTokens, knownProtocols) {
     const protocol = knownProtocols[i];
     const lowerProtocol = lowerKnownProtocols[i];
     // Case-insensitive pattern that matches any casing
-    const pattern = new RegExp(`\\b${lowerProtocol}\\b`, 'i');
+    const pattern = new RegExp(`\\b${escapeRegex(lowerProtocol)}\\b`, 'i');
     if (pattern.test(text)) {
       foundProtocols.push(protocol);
     }
@@ -310,7 +299,7 @@ function extractTokensAndProtocols(prompt, availableTokens, knownProtocols) {
   
   // Find tokens - but exclude protocol matches
   for (const token of availableTokens) {
-    const pattern = new RegExp(`\\b${token}\\b`, 'i');
+    const pattern = new RegExp(`\\b${escapeRegex(token)}\\b`, 'i');
     if (pattern.test(text)) {
       // Check if this match is actually a protocol (case insensitive)
       const isProtocol = foundProtocols.some(p => p.toLowerCase() === token.toLowerCase());
@@ -417,6 +406,14 @@ async function main() {
     const { type, name, address } = register;
     
     if (type === 'protocol') {
+      if (!name || !/^[A-Za-z0-9_-]+$/.test(name)) {
+        console.log(JSON.stringify({
+          success: false,
+          error: "Invalid name format"
+        }));
+        process.exit(1);
+      }
+
       if (!address || !address.startsWith('0x')) {
         console.log(JSON.stringify({
           success: false,
@@ -461,7 +458,9 @@ async function main() {
   // Step 3: Load data
   const PROTOCOLS = loadProtocols();
   const avnuTokens = await fetchAllTokens();
-  const availableTokens = avnuTokens.map(t => t.symbol);
+  const availableTokens = avnuTokens
+    .map(t => t?.symbol)
+    .filter(s => typeof s === 'string' && s.length > 0);
   // Build minimal token metadata map for tokens mentioned in prompt (symbol -> {address, decimals})
   const tokenMap = {};
   const knownProtocols = Object.keys(PROTOCOLS);
@@ -473,17 +472,28 @@ async function main() {
     knownProtocols
   );
 
+  // Loot Survivor aliasing (protocol key is LootSurvivor; users will type "loot survivor" or "death mountain")
+  if (/\bloot\s*survivor\b|\bdeath\s*mountain\b/i.test(prompt)) {
+    if (!protocols.some(p => p.toLowerCase() === 'lootsurvivor')) {
+      protocols.push('LootSurvivor');
+    }
+  }
+
   // Step 4.25: Transfer intent quick validation (inform user what's missing)
   // Keep this narrow: only for obvious send/transfer prompts.
   const isTransferIntent = /\b(send|transfer)\b/i.test(prompt);
   if (isTransferIntent) {
     const missing = [];
 
-    // Recipient: look for 0x... anywhere; also detect "to <word>" invalid recipient.
-    const recipientMatch = prompt.match(/0x[0-9a-fA-F]+/);
+    // Recipient: look for valid 0x... anywhere; also detect "to <word>" invalid recipient.
+    const recipientRegex = new RegExp(`0x[0-9a-fA-F]{${MIN_RECIPIENT_HEX_LEN},}`);
+    const exactRecipientRegex = new RegExp(`^0x[0-9a-fA-F]{${MIN_RECIPIENT_HEX_LEN},}$`);
+    const recipientMatch = prompt.match(recipientRegex);
     const toWord = prompt.match(/\bto\s+([^\s]+)/i);
     const recipient = recipientMatch ? recipientMatch[0] : null;
-    const hasInvalidRecipient = (!recipient && toWord && toWord[1] && !/^0x[0-9a-fA-F]+$/.test(toWord[1]));
+    const toCandidate = toWord?.[1] || null;
+    const looksHexButTooShort = !!(toCandidate && /^0x[0-9a-fA-F]+$/.test(toCandidate) && toCandidate.length < (2 + MIN_RECIPIENT_HEX_LEN));
+    const hasInvalidRecipient = !!(toCandidate && (!exactRecipientRegex.test(toCandidate) || looksHexButTooShort));
 
     // Amount: first decimal/integer number
     const amountMatch = prompt.match(/\b\d+(?:\.\d+)?\b/);
@@ -596,7 +606,8 @@ async function main() {
   // This skill is ecosystem-wide, not DeFi-specific.
   
   // Step 7: Fetch ABIs for registered protocols (AVNU gets fake ABI)
-  const provider = new Provider({ nodeUrl: RPC_URL });
+  const rpcUrl = resolveRpcUrl();
+  const provider = new RpcProvider({ nodeUrl: rpcUrl });
   const abis = {};
   const addresses = {};
   
@@ -625,7 +636,7 @@ async function main() {
       
       try {
         const abi = await fetchABI(address, provider);
-        abis[protocol] = extractFunctions(abi);
+        abis[protocol] = abi === null ? [] : extractFunctions(abi);
       } catch (e) {
         abis[protocol] = [];
       }

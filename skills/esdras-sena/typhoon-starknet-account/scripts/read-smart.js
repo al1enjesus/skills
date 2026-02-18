@@ -6,9 +6,9 @@
  * Fetches ABI, analyzes prompt, finds best match purely by string analysis.
  */
 
-import { Provider, Contract, shortString } from 'starknet';
+import { Provider, shortString } from 'starknet';
 
-const RPC_URL = 'https://rpc.starknet.lava.build:443';
+import { resolveRpcUrl } from './_rpc.js';
 
 function extractFunctions(abi) {
   const funcs = [];
@@ -63,9 +63,10 @@ function calculateSimilarity(action, funcName) {
         score += 15;
         matchedTokens++;
       } else {
-        // Check for common substrings
+        // Check for common substrings (bounded)
         const minLen = Math.min(at.length, ft.length);
-        for (let len = 3; len <= minLen; len++) {
+        const maxSubstringLen = Math.min(5, minLen);
+        for (let len = 3; len <= maxSubstringLen; len++) {
           for (let i = 0; i <= at.length - len; i++) {
             const sub = at.substring(i, i + len);
             if (ft.includes(sub)) {
@@ -73,6 +74,7 @@ function calculateSimilarity(action, funcName) {
               break;
             }
           }
+          if (score >= 120) break;
         }
       }
     }
@@ -136,6 +138,31 @@ function serialize(v, decodeStrings = false) {
   return v;
 }
 
+
+function normalizeAbi(rawAbi) {
+  if (!rawAbi) return null;
+  if (Array.isArray(rawAbi)) return rawAbi;
+  if (typeof rawAbi === 'string') {
+    try { return JSON.parse(rawAbi); } catch { return null; }
+  }
+  if (typeof rawAbi === 'object') {
+    if (Array.isArray(rawAbi.abi)) return rawAbi.abi;
+    if (typeof rawAbi.abi === 'string') {
+      try { return JSON.parse(rawAbi.abi); } catch { return null; }
+    }
+  }
+  return null;
+}
+
+function isUint256LikeOutput(functionAbi) {
+  const outputs = functionAbi?.outputs || [];
+  if (!Array.isArray(outputs) || outputs.length === 0) return false;
+  return outputs.some((out) => {
+    const t = String(out?.type || out?.name || '').toLowerCase();
+    return t.includes('uint256') || t.includes('u256') || t.includes('core::integer::u256');
+  });
+}
+
 async function main() {
   const rawInput = process.argv[2];
   
@@ -162,17 +189,18 @@ async function main() {
     process.exit(1);
   }
   
-  const provider = new Provider({ nodeUrl: RPC_URL });
+  const rpcUrl = resolveRpcUrl();
+  const provider = new Provider({ nodeUrl: rpcUrl });
   
   // Fetch ABI from blockchain
   let abi;
   try {
     const classResponse = await provider.getClassAt(contractAddress);
-    if (!classResponse.abi) {
+    abi = normalizeAbi(classResponse?.abi ?? classResponse);
+    if (!abi || !Array.isArray(abi) || abi.length === 0) {
       console.log(JSON.stringify({ error: "Contract has no ABI on chain" }));
       process.exit(1);
     }
-    abi = classResponse.abi;
   } catch (err) {
     console.log(JSON.stringify({ error: `Failed to fetch ABI: ${err.message}` }));
     process.exit(1);
@@ -210,33 +238,45 @@ async function main() {
   }
   
   // Execute call
-  const contract = new Contract(abi, contractAddress, provider);
-  
   try {
-    const result = await contract.call(resolvedMethod, args);
-    
-    // Try to get raw result for uint256 parsing
+    let result;
     let rawResult = null;
     let uint256 = null;
+
     try {
+      result = await contract.call(resolvedMethod, args);
+    } catch (typedCallErr) {
+      // Fallback to raw RPC call when typed call path fails (e.g. ABI parser quirks)
       const r = await provider.callContract({
         contractAddress,
         entrypoint: resolvedMethod,
         calldata: args.map(String)
       });
       rawResult = Array.isArray(r) ? r : (r?.result || null);
-      
-      if (rawResult && Array.isArray(rawResult) && rawResult.length === 2) {
-        const low = BigInt(rawResult[0]);
-        const high = BigInt(rawResult[1]);
-        uint256 = {
-          low: String(rawResult[0]),
-          high: String(rawResult[1]),
-          value: (low + (high << 128n)).toString()
-        };
+      result = rawResult;
+    }
+
+    if (!rawResult) {
+      try {
+        const r = await provider.callContract({
+          contractAddress,
+          entrypoint: resolvedMethod,
+          calldata: args.map(String)
+        });
+        rawResult = Array.isArray(r) ? r : (r?.result || null);
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
+    }
+
+    if (rawResult && Array.isArray(rawResult) && rawResult.length === 2 && isUint256LikeOutput(matchedFunction)) {
+      const low = BigInt(rawResult[0]);
+      const high = BigInt(rawResult[1]);
+      uint256 = {
+        low: String(rawResult[0]),
+        high: String(rawResult[1]),
+        value: (low + (high << 128n)).toString()
+      };
     }
     
     const output = {

@@ -19,7 +19,7 @@
 
 import { Provider, Account, Contract } from 'starknet';
 
-const RPC_URL = 'https://rpc.starknet.lava.build:443';
+import { resolveRpcUrl } from './_rpc.js';
 
 function fail(message) {
   console.error(JSON.stringify({ error: message }));
@@ -44,8 +44,13 @@ async function main() {
 
   const privateKey = input.privateKey;
 
-  const provider = new Provider({ nodeUrl: RPC_URL });
-  const account = new Account(provider, input.accountAddress, privateKey);
+  const rpcUrl = resolveRpcUrl();
+  const provider = new Provider({ nodeUrl: rpcUrl });
+  const account = new Account({
+    provider,
+    address: input.accountAddress,
+    signer: privateKey
+  });
 
   const classResponse = await provider.getClassAt(input.contractAddress);
   if (!classResponse.abi) fail('Contract has no ABI on chain.');

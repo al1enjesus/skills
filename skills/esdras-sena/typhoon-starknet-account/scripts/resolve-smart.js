@@ -11,7 +11,7 @@
  */
 
 import { Provider, CallData } from 'starknet';
-import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, unlinkSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
@@ -21,7 +21,82 @@ import nlp from 'compromise';
 import { fetchTokens } from '@avnu/avnu-sdk';
 import { findCanonicalAction, ALL_SYNONYMS } from './synonyms.js';
 
-const RPC_URL = 'https://rpc.starknet.lava.build:443';
+import { resolveRpcUrl } from './_rpc.js';
+
+// ============ LOOT SURVIVOR LATEST ADVENTURER (LOCAL UX STATE) ============
+// We intentionally do NOT scan chain/indexers for "latest adventurer".
+// Instead we persist the last-used adventurerId per account locally.
+const LOOT_STATE_DIR = join(homedir(), '.openclaw', 'typhoon-loot-survivor');
+const LOOT_STATE_FILE = join(LOOT_STATE_DIR, 'latest.json');
+
+function lootStateLoad() {
+  try {
+    if (!existsSync(LOOT_STATE_FILE)) return {};
+    return JSON.parse(readFileSync(LOOT_STATE_FILE, 'utf8')) || {};
+  } catch {
+    return {};
+  }
+}
+
+function lootStateGetEntry(map, accountAddress) {
+  const v = map[String(accountAddress).toLowerCase()];
+  // Backward compat: older versions stored just the latest adventurerId as a string
+  if (typeof v === 'string') return { latestAdventurerId: v, pendingEncounter: false };
+  if (v && typeof v === 'object') {
+    return {
+      latestAdventurerId: v.latestAdventurerId ? String(v.latestAdventurerId) : null,
+      pendingEncounter: Boolean(v.pendingEncounter)
+    };
+  }
+  return { latestAdventurerId: null, pendingEncounter: false };
+}
+
+function lootStateWriteEntry(map, accountAddress, entry) {
+  map[String(accountAddress).toLowerCase()] = {
+    latestAdventurerId: entry.latestAdventurerId ? String(entry.latestAdventurerId) : null,
+    pendingEncounter: Boolean(entry.pendingEncounter)
+  };
+}
+
+function lootStateGetLatest(accountAddress) {
+  if (!accountAddress) return null;
+  const map = lootStateLoad();
+  return lootStateGetEntry(map, accountAddress).latestAdventurerId;
+}
+
+function lootStateGetPending(accountAddress) {
+  if (!accountAddress) return false;
+  const map = lootStateLoad();
+  return lootStateGetEntry(map, accountAddress).pendingEncounter;
+}
+
+function lootStateSetLatest(accountAddress, adventurerId) {
+  if (!accountAddress || !adventurerId) return;
+  try {
+    mkdirSync(LOOT_STATE_DIR, { recursive: true });
+    const map = lootStateLoad();
+    const entry = lootStateGetEntry(map, accountAddress);
+    entry.latestAdventurerId = String(adventurerId);
+    lootStateWriteEntry(map, accountAddress, entry);
+    writeFileSync(LOOT_STATE_FILE, JSON.stringify(map, null, 2) + '\n', 'utf8');
+  } catch {
+    // best-effort only
+  }
+}
+
+function lootStateSetPending(accountAddress, pending) {
+  if (!accountAddress) return;
+  try {
+    mkdirSync(LOOT_STATE_DIR, { recursive: true });
+    const map = lootStateLoad();
+    const entry = lootStateGetEntry(map, accountAddress);
+    entry.pendingEncounter = Boolean(pending);
+    lootStateWriteEntry(map, accountAddress, entry);
+    writeFileSync(LOOT_STATE_FILE, JSON.stringify(map, null, 2) + '\n', 'utf8');
+  } catch {
+    // best-effort only
+  }
+}
 
 // ============ DYNAMIC REGISTRY LOADING ============
 const __filename = fileURLToPath(import.meta.url);
@@ -533,6 +608,82 @@ function parseAccountCreation(prompt) {
 
 function parseOperation(segment, availableTokens = [], previousOp = null, knownActions = [], allowIncomplete = false) {
   const doc = nlp(segment);
+
+  // ============ LOOT SURVIVOR (Provable Games) ============
+  // Handle game commands that don't fit the token/amount-centric DeFi parser.
+  // We treat LootSurvivor as a protocol (registered in protocols.json) and route execution
+  // to scripts/loot-survivor.js.
+  const lootContext = /\bloot\s*survivor\b|\bdeath\s*mountain\b/i.test(segment) ||
+                      (previousOp?.protocol && String(previousOp.protocol).toLowerCase() === 'lootsurvivor');
+
+  if (lootContext) {
+    const text = segment.toLowerCase();
+
+    // Determine action
+    let action = null;
+    if (/\b(state|status|game state|get_game_state|get state)\b/.test(text)) action = 'state';
+    else if (/\bstart\b.*\bgame\b|\bstart_game\b|\bbegin\b/.test(text)) action = 'start_game';
+    else if (/\bexplore\b/.test(text)) action = 'explore';
+    else if (/\battack\b/.test(text)) action = 'attack';
+    else if (/\bflee\b|\brun\b/.test(text)) action = 'flee';
+
+    // If segment is just "loot survivor" with no verb, skip
+    if (!action) return null;
+
+    // Extract adventurer id (u64)
+    let adventurerId = null;
+    const m1 = segment.match(/adventurer\s*(?:id)?\s*[:#]?\s*(\d+)/i);
+    if (m1) adventurerId = m1[1];
+    if (!adventurerId) {
+      // fallback: first integer in the segment
+      const m2 = segment.match(/\b(\d+)\b/);
+      if (m2) adventurerId = m2[1];
+    }
+    // Inherit from previous LootSurvivor op for multi-step combos ("then attack", "then explore")
+    if (!adventurerId && previousOp?.protocol && String(previousOp.protocol).toLowerCase() === 'lootsurvivor') {
+      const prevArgs = previousOp.args || {};
+      if (prevArgs.adventurerId) adventurerId = String(prevArgs.adventurerId);
+    }
+
+    // Params
+    const weapon = (() => {
+      const mw = segment.match(/weapon\s*[:#]?\s*(\d+)/i);
+      return mw ? Number(mw[1]) : 0;
+    })();
+
+    // Params (inherit when not specified)
+    const prevArgs = (previousOp?.protocol && String(previousOp.protocol).toLowerCase() === 'lootsurvivor') ? (previousOp.args || {}) : {};
+
+    const tillBeast = /till\s*beast|until\s*beast|to\s*beast/.test(text) ? true : (prevArgs.tillBeast ?? false);
+    const toTheDeath = /to\s*the\s*death|death\s*mode/.test(text) ? true : (prevArgs.toTheDeath ?? false);
+
+    const isRead = action === 'state';
+
+    // For loot actions, we require adventurerId except for future flows.
+    if (!adventurerId) {
+      // allowIncomplete lets conditional parsing carry on, but generally we want to ask the user.
+      if (!allowIncomplete) return null;
+    }
+
+    return {
+      action,
+      amount: null,
+      tokenIn: null,
+      tokenOut: null,
+      protocol: 'LootSurvivor',
+      isReference: false,
+      isRead,
+      isWatch: false,
+      actionCorrected: false,
+      // keep structured args for execution routing
+      args: {
+        adventurerId: adventurerId ? String(adventurerId) : undefined,
+        weapon,
+        tillBeast,
+        toTheDeath
+      }
+    };
+  }
   
   // Check for WATCH patterns first
   const watchMatch = segment.match(/\b(watch|monitor|track|listen)\s+(?:the\s+)?([A-Za-z]+)(?:\s+event)?/i);
@@ -994,7 +1145,8 @@ async function main() {
     };
     
     // Build execution plan based on operationType
-    const provider = new Provider({ nodeUrl: RPC_URL });
+    const rpcUrl = resolveRpcUrl();
+    const provider = new Provider({ nodeUrl: rpcUrl });
 
     if (operationType === "AVNU_SWAP") {
       const swapOp = operations[0];
@@ -1049,7 +1201,8 @@ async function main() {
         } catch {
           // Retry once with a fresh provider (some RPC hiccups manifest as stuck provider instances)
           try {
-            const p2 = new Provider({ nodeUrl: RPC_URL });
+            const rpcUrl = resolveRpcUrl();
+            const p2 = new Provider({ nodeUrl: rpcUrl });
             const resp2 = await p2.getClassAt(addr);
             a = resp2?.abi || [];
           } catch {
@@ -1185,6 +1338,56 @@ async function main() {
             continue;
           }
 
+          // Loot Survivor: route to specialized script instead of generic ABI compilation
+          if (op.protocol && String(op.protocol).toLowerCase() === 'lootsurvivor') {
+            const a = op.args || {};
+            const modeMap = {
+              state: 'state',
+              start_game: 'start_game',
+              explore: 'explore',
+              attack: 'attack',
+              flee: 'flee'
+            };
+            const mode = modeMap[String(op.action || '').toLowerCase()];
+            if (!mode) {
+              errors.push({ index: i, type: 'LOOT_SURVIVOR_UNKNOWN_ACTION', message: `Unknown LootSurvivor action: ${op.action}` });
+              continue;
+            }
+            if (!a.adventurerId) {
+              // UX: default to latest adventurer id for this account
+              const latest = lootStateGetLatest(account.address);
+              if (latest) a.adventurerId = String(latest);
+            }
+            if (!a.adventurerId) {
+              errors.push({
+                index: i,
+                type: 'MISSING_ADVENTURER_ID',
+                message: 'No adventurerId provided and no "latest" adventurer stored yet. Start/mint a game once or specify: "adventurer 123".'
+              });
+              continue;
+            }
+
+            // Persist best-effort for subsequent steps/prompts
+            lootStateSetLatest(account.address, a.adventurerId);
+
+            multicall.push({
+              step: multicall.length + 1,
+              type: 'operation',
+              script: 'loot-survivor.js',
+              args: {
+                mode,
+                adventurerId: a.adventurerId,
+                weapon: a.weapon ?? 0,
+                tillBeast: a.tillBeast ?? false,
+                toTheDeath: a.toTheDeath ?? false,
+                accountAddress: account.address,
+                privateKey: account.privateKey
+              },
+              description: `LootSurvivor ${mode} adventurer ${a.adventurerId}`
+            });
+            continue;
+          }
+
           // Dangerous/admin function denylist (fail closed unless explicitly allowed)
           const dangerousName = String(entry.name || '').toLowerCase();
           const dangerousPatterns = [
@@ -1221,6 +1424,27 @@ async function main() {
               errors.push({ index: i, type: 'MISSING_NAMED_ARGS', message: `Missing named args for ${entry.name}: ${missing.join(', ')}` });
               continue;
             }
+          }
+
+          // Starkbook token symbol support:
+          // If a ContractAddress arg is provided as a token symbol (e.g., STRK/ETH/USDC),
+          // resolve it to the token contract address using the already-fetched AVNU verified tokens.
+          try {
+            if (args && typeof args === 'object' && !Array.isArray(args) && Array.isArray(entry.inputs)) {
+              for (const inp of entry.inputs) {
+                if (!inp?.name) continue;
+                if (!String(inp.type || '').includes('ContractAddress')) continue;
+                const v = args[inp.name];
+                if (typeof v === 'string' && !v.startsWith('0x') && /^[A-Z0-9.]{2,12}$/.test(v)) {
+                  const t = avnuTokens.find(x => String(x.symbol || '').toUpperCase() === v.toUpperCase());
+                  if (t?.address) {
+                    args[inp.name] = t.address;
+                  }
+                }
+              }
+            }
+          } catch {
+            // best-effort
           }
 
           // Compile calldata using starknet.js (enforces types/shape better than our heuristics)
@@ -1272,15 +1496,36 @@ async function main() {
     } else if (operationType === "READ") {
       result.executionPlan = {
         type: "READ",
-        calls: operations.map((op, i) => ({
-          index: i,
-          script: "read-smart.js",
-          args: {
-            contractAddress: addresses[op.protocol] || op.contractAddress,
-            method: op.action,
-            args: op.params || []
+        calls: operations.map((op, i) => {
+          // Loot Survivor read routing
+          if (op.protocol && String(op.protocol).toLowerCase() === 'lootsurvivor') {
+            const a = op.args || {};
+            if (!a.adventurerId) {
+              return {
+                index: i,
+                script: null,
+                error: 'Missing adventurerId for LootSurvivor state read'
+              };
+            }
+            return {
+              index: i,
+              script: 'loot-survivor.js',
+              args: { mode: 'state', adventurerId: a.adventurerId }
+            };
           }
-        }))
+
+          const inferredSymbol = String(op.token || op.tokenIn || op.tokenOut || op.asset || op.symbol || '').toUpperCase();
+          const inferredAddressFromTokenMap = parsed?.tokenMap?.[inferredSymbol]?.address || null;
+          return {
+            index: i,
+            script: "read-smart.js",
+            args: {
+              contractAddress: addresses[op.protocol] || op.contractAddress || inferredAddressFromTokenMap,
+              method: op.action,
+              args: op.params || []
+            }
+          };
+        })
       };
     } else if (operationType === "CONDITIONAL" || operationType === "EVENT_WATCH") {
       // Handle watchers with event watching + optional actions
@@ -1549,6 +1794,14 @@ async function main() {
   const hasAccount = !account.error && account.address;
   
   result.hasAccount = hasAccount;
+
+  // Loot Survivor UX: if user says bare "attack" / "flee" after an explore-beast encounter,
+  // treat it as a LootSurvivor action against their latest adventurer.
+  // This is based on local state, not chain scanning.
+  if (hasAccount && /^\s*(attack|flee)(\b|\s)/i.test(prompt) && lootStateGetPending(account.address)) {
+    result.orchestration.push({ step: 1.1, name: 'Loot Survivor Pending Encounter Detected', note: 'Interpreting bare action as LootSurvivor' });
+    result.prompt = `loot survivor ${prompt}`;
+  }
   
   // Check if this is an account creation prompt
   if (isAccountCreationPrompt(prompt)) {
@@ -1637,7 +1890,8 @@ async function main() {
     total: account.total
   };
   
-  const provider = new Provider({ nodeUrl: RPC_URL });
+  const rpcUrl = resolveRpcUrl();
+  const provider = new Provider({ nodeUrl: rpcUrl });
   
   // Step 1.5: Fetch AVNU tokens before parsing
   result.orchestration.push({ step: 1.5, name: "Fetch AVNU Tokens" });
@@ -1711,7 +1965,7 @@ async function main() {
   
   // Step 2: Final parse with ABI-informed fuzzy matching
   result.orchestration.push({ step: 2, name: "Parse Prompt with ABI Functions" });
-  const { operations, watchers } = parsePrompt(prompt, availableTokenSymbols, [...knownActions]);
+  const { operations, watchers } = parsePrompt(result.prompt, availableTokenSymbols, [...knownActions]);
   
   result.parsed = { operations, watchers, operationCount: operations.length, watcherCount: watchers.length };
   
@@ -1963,15 +2217,34 @@ async function main() {
   if (result.operationType === "READ") {
     result.executionPlan = {
       type: "READ",
-      calls: operations.map((op, i) => ({
-        index: i,
-        script: "read-smart.js",
-        args: {
-          contractAddress: result.resolutions[i]?.contractAddress,
-          method: result.resolutions[i]?.functionMatch?.name || op.action,
-          args: [account.address]
+      calls: operations.map((op, i) => {
+        if (op.protocol && String(op.protocol).toLowerCase() === 'lootsurvivor') {
+          const a = op.args || {};
+          if (!a.adventurerId) {
+            const latest = lootStateGetLatest(account.address);
+            if (latest) a.adventurerId = String(latest);
+          }
+          if (!a.adventurerId) {
+            return { index: i, script: null, error: 'No adventurerId provided and no latest adventurer stored yet.' };
+          }
+          lootStateSetLatest(account.address, a.adventurerId);
+          return {
+            index: i,
+            script: 'loot-survivor.js',
+            args: { mode: 'state', adventurerId: a.adventurerId }
+          };
         }
-      }))
+        const existingArgs = Array.isArray(op.params) && op.params.length > 0 ? op.params : [account.address];
+        return {
+          index: i,
+          script: "read-smart.js",
+          args: {
+            contractAddress: result.resolutions[i]?.contractAddress,
+            method: result.resolutions[i]?.functionMatch?.name || op.action,
+            args: existingArgs
+          }
+        };
+      })
     };
   } else if (result.operationType === "WRITE") {
     const multicall = [];
@@ -2001,6 +2274,48 @@ async function main() {
       }
       
       // Add operation
+      if (op.protocol && String(op.protocol).toLowerCase() === 'lootsurvivor') {
+        const a = op.args || {};
+        const modeMap = { state: 'state', start_game: 'start_game', explore: 'explore', attack: 'attack', flee: 'flee' };
+        const mode = modeMap[String(op.action || '').toLowerCase()];
+        if (!mode) {
+          // fall back to generic invoke
+        } else {
+          if (!a.adventurerId) {
+            const latest = lootStateGetLatest(account.address);
+            if (latest) a.adventurerId = String(latest);
+          }
+          if (!a.adventurerId) {
+            // Fail closed: without an id we cannot play.
+            // We'll surface a clear error via the normal pipeline.
+            // (Let generic invoke happen if you later support mint_game here.)
+          } else {
+            lootStateSetLatest(account.address, a.adventurerId);
+          }
+        }
+
+        if (!a.adventurerId) {
+          // fall back to generic invoke
+        } else { 
+          multicall.push({
+            step: multicall.length + 1,
+            type: 'operation',
+            script: 'loot-survivor.js',
+            args: {
+              mode,
+              adventurerId: a.adventurerId,
+              weapon: a.weapon ?? 0,
+              tillBeast: a.tillBeast ?? false,
+              toTheDeath: a.toTheDeath ?? false,
+              accountAddress: account.address,
+              privateKey: account.privateKey
+            },
+            description: `LootSurvivor ${mode} adventurer ${a.adventurerId}`
+          });
+          continue;
+        }
+      }
+
       multicall.push({
         step: multicall.length + 1,
         type: "operation",
@@ -2110,16 +2425,23 @@ async function main() {
             eventScore: res?.eventMatch?.score,
             protocol: w.condition.protocol
           },
-          action: w.action !== 'watch' ? {  // Only if there's an action (not pure watch)
-            script: "invoke-contract.js",
-            args: {
-              privateKey: account.privateKey, // Passed from resolve-smart (only secrets reader)
-              accountAddress: account.address,
-              contractAddress: res?.contractAddress,
-              method: res?.functionMatch?.name || w.action,
-              args: []
-            }
-          } : null
+          action: w.action !== 'watch'
+            ? (res?.contractAddress
+              ? {
+                  script: "invoke-contract.js",
+                  args: {
+                    privateKey: account.privateKey, // Passed from resolve-smart (only secrets reader)
+                    accountAddress: account.address,
+                    contractAddress: res.contractAddress,
+                    method: res?.functionMatch?.name || w.action,
+                    args: []
+                  }
+                }
+              : {
+                  script: null,
+                  error: `No contractAddress resolved for conditional action: ${w.action}`
+                })
+            : null
         };
       })
     };
@@ -2134,6 +2456,15 @@ async function main() {
         // For multi-address protocols, use the first address (main contract)
         const protocolAddresses = PROTOCOLS[op.protocol];
         const contractAddr = Array.isArray(protocolAddresses) ? protocolAddresses[0] : protocolAddresses;
+        if (!contractAddr) {
+          return {
+            index: i,
+            script: null,
+            error: `No contractAddress resolved for watch protocol: ${op.protocol}`,
+            protocol: op.protocol,
+            description: `Watch for '${op.eventName}' events on ${op.protocol}`
+          };
+        }
         return {
           index: i,
           script: "watch-events-smart.js",

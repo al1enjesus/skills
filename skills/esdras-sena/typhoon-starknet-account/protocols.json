@@ -61,15 +61,16 @@
     "type": "DEX",
     "description": "Sithswap AMM"
   },
-  "Starkbook": {
+  
+  "LootSurvivor": {
     "addresses": [
       {
-        "address": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "name": "Core"
+        "address": "0x6f7c4350d6d5ee926b3ac4fa0c9c351055456e75c92227468d84232fc493a9c",
+        "name": "Death Mountain Game"
       }
     ],
     "network": "mainnet",
-    "type": "Marketplace",
-    "description": "Starkbook marketplace"
+    "type": "Game",
+    "description": "Loot Survivor (Provable Games) / Death Mountain game contract"
   }
 }
