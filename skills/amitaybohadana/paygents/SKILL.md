@@ -1,6 +1,12 @@
 ---
 name: paygents
 description: AI agent payment skill — generate wallet deeplinks (MetaMask, Trust Wallet), verify transactions on-chain, generate receipts, check balances. No custody, no backend, no API keys. Human approves in their own wallet.
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - node
+        - bash
 ---
 
 # EVM Payment Deeplink Skill
@@ -33,11 +39,7 @@ Before generating a link, the agent should know which wallet the user has. Ask o
 
 If the user's wallet isn't supported, default to MetaMask (most common) or let them know.
 
-Store the user's wallet preference so you don't ask again. Example: add to TOOLS.md or memory:
-```
-### Wallet Preferences
-- Amitay: metamask
-```
+Store the user's wallet preference so you don't ask again. The agent should note the preference in its local session context (e.g. memory file). The user can change or clear this at any time by telling the agent.
 
 ## Inputs Required
 
@@ -151,9 +153,36 @@ Output includes: status, amount, token, from/to, gas fee, block, explorer link, 
 
 The receipt can be sent to the user as a confirmation message, saved for bookkeeping, or forwarded to a merchant.
 
-## Security
+## RPC Configuration
+
+By default, scripts use public RPC endpoints. You can override them for privacy or reliability:
+
+**Option 1 — Environment variables** (highest priority):
+```bash
+export RPC_1="https://my-private-eth-node.com"
+export RPC_8453="https://my-base-rpc.com"
+```
+
+**Option 2 — Config file** (copy `config.example.json` → `config.json`):
+```json
+{
+  "rpc": {
+    "1": "https://my-private-eth-node.com",
+    "8453": "https://my-base-rpc.com"
+  }
+}
+```
+
+**Option 3 — Public fallbacks** (default, no setup needed):
+Used automatically if no env var or config is set. Public providers (e.g. `eth.llamarpc.com`) will see your wallet addresses and tx hashes.
+
+Resolution order: env var `RPC_<chainId>` → `config.json` → public fallback.
+
+## Security & Privacy
 
 - The wallet is the trust boundary — agent cannot force-execute.
 - Verification checks the actual on-chain receipt, not user claims.
 - No backend, no policy enforcement. This is a POC skill.
 - Never store or handle private keys.
+- **RPC privacy:** If using public fallback RPCs, third-party providers will see wallet addresses and tx hashes you query. Set your own RPCs via env vars or config.json for privacy.
+- **Wallet preference:** The agent may store the user's preferred wallet (metamask/trust) in its memory. This is only the wallet app name, no keys or sensitive data. The user can ask the agent to clear it at any time.

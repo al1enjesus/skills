@@ -3,7 +3,8 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Check wallet balances via public RPCs. Returns native + major ERC20 token balances.
+Check wallet balances via RPC. Returns native + major ERC20 token balances.
+RPC resolution: env var RPC_<chainId> → config.json → public fallback.
 
 Usage:
   evm-balance.sh --address <0x...> [--chain-id <id>] [--all]
@@ -36,23 +37,20 @@ if [[ ! "$ADDRESS" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
   echo "Invalid address: $ADDRESS" >&2; exit 1
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 node -e '
 const https = require("https");
 const http = require("http");
+const { getRpc, getChainMeta, CHAIN_META } = require(process.argv[3] + "/lib/rpc-config.js");
 
 const ADDRESS = process.argv[1].toLowerCase();
 const FILTER_CHAIN = process.argv[2] || "";
 
-const CHAINS = {
-  "1":        { name: "Ethereum",      rpc: "https://eth.llamarpc.com",     symbol: "ETH",  explorer: "https://etherscan.io/address/" },
-  "8453":     { name: "Base",          rpc: "https://mainnet.base.org",     symbol: "ETH",  explorer: "https://basescan.org/address/" },
-  "137":      { name: "Polygon",       rpc: "https://polygon-rpc.com",      symbol: "POL",  explorer: "https://polygonscan.com/address/" },
-  "42161":    { name: "Arbitrum",      rpc: "https://arb1.arbitrum.io/rpc", symbol: "ETH",  explorer: "https://arbiscan.io/address/" },
-  "10":       { name: "Optimism",      rpc: "https://mainnet.optimism.io",  symbol: "ETH",  explorer: "https://optimistic.etherscan.io/address/" },
-  "56":       { name: "BNB Chain",     rpc: "https://bsc-dataseed.binance.org", symbol: "BNB", explorer: "https://bscscan.com/address/" },
-  "11155111": { name: "Sepolia",       rpc: "https://rpc.sepolia.org",      symbol: "ETH",  explorer: "https://sepolia.etherscan.io/address/" },
-  "84532":    { name: "Base Sepolia",  rpc: "https://sepolia.base.org",     symbol: "ETH",  explorer: "https://sepolia.basescan.org/address/" },
-};
+const CHAINS = {};
+for (const [id, meta] of Object.entries(CHAIN_META)) {
+  const rpc = getRpc(id);
+  if (rpc) CHAINS[id] = { name: meta.name, rpc, symbol: meta.symbol, explorer: meta.explorer + "/address/" };
+}
 
 // Major tokens per chain (address → {symbol, decimals})
 const TOKENS = {
@@ -184,4 +182,4 @@ main().catch(e => {
   console.error(JSON.stringify({ error: e.message }));
   process.exit(1);
 });
-' "$ADDRESS" "$CHAIN_ID"
+' "$ADDRESS" "$CHAIN_ID" "$SCRIPT_DIR"

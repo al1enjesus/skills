@@ -68,14 +68,10 @@ else
   fi
 fi
 
-# RPC endpoints by chain
-case "$CHAIN_ID" in
-  1) RPC="https://eth.llamarpc.com" ; EXPLORER="https://etherscan.io/tx/" ;;
-  8453) RPC="https://mainnet.base.org" ; EXPLORER="https://basescan.org/tx/" ;;
-  11155111) RPC="https://1rpc.io/sepolia" ; EXPLORER="https://sepolia.etherscan.io/tx/" ;;
-  84532) RPC="https://sepolia.base.org" ; EXPLORER="https://sepolia.basescan.org/tx/" ;;
-  *) echo "No RPC configured for chain $CHAIN_ID" >&2; exit 1 ;;
-esac
+# Resolve RPC + explorer via shared config
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+RPC="$(node -e "const c=require('$SCRIPT_DIR/lib/rpc-config.js'); const r=c.getRpc('$CHAIN_ID'); if(!r){process.exit(1)} process.stdout.write(r)")" || { echo "No RPC for chain $CHAIN_ID. Set RPC_$CHAIN_ID env var or add to config.json" >&2; exit 1; }
+EXPLORER="$(node -e "const c=require('$SCRIPT_DIR/lib/rpc-config.js'); const m=c.getChainMeta('$CHAIN_ID'); process.stdout.write(m?m.explorer+'/tx/':'')")"
 
 AMOUNT_BASE_UNITS="$(node -e '
 const amount = process.argv[1];
