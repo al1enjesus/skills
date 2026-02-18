@@ -3,9 +3,15 @@
   "slug": "personality-backup",
   "displayName": "Personality Backup",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771275667379,
-    "commit": "https://github.com/openclaw/skills/commit/9f4d1df104a2d0555417d61db70e3ef4b091a8a4"
+    "version": "1.0.2",
+    "publishedAt": 1771345398886,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771275667379,
+      "commit": "https://github.com/openclaw/skills/commit/9f4d1df104a2d0555417d61db70e3ef4b091a8a4"
+    }
+  ]
 }
