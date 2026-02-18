@@ -8,9 +8,9 @@ All endpoints require authentication via the `x-api-key` header (except where no
 
 ## Authentication
 
-| Header     | Value            | Description                     |
-|------------|------------------|---------------------------------|
-| x-api-key  | `noya_<key>`     | API key generated from the app  |
+| Header    | Value        | Description                    |
+| --------- | ------------ | ------------------------------ |
+| x-api-key | `noya_<key>` | API key generated from the app |
 
 API keys are created with a duration: `thirty_days`, `ninety_days`, or `one_year`. Expired or revoked keys return `401`.
 
@@ -31,10 +31,10 @@ Send a message to the Noya agent and receive a streamed response.
 }
 ```
 
-| Field    | Type   | Required | Description                                    |
-|----------|--------|----------|------------------------------------------------|
-| message  | string | Yes      | User message text                              |
-| threadId | string | Yes      | Thread identifier. Creates thread if new.      |
+| Field    | Type   | Required | Description                                       |
+| -------- | ------ | -------- | ------------------------------------------------- |
+| message  | string | Yes      | User message text                                 |
+| threadId | string | Yes      | UUID v4 thread identifier. Creates thread if new. |
 
 ### Response
 
@@ -133,10 +133,10 @@ To respond to an interrupt, send another message to the same thread with the use
 
 ### Error Responses
 
-| Status | Condition                |
-|--------|--------------------------|
+| Status | Condition                   |
+| ------ | --------------------------- |
 | 400    | Missing message or threadId |
-| 401    | Unauthorized             |
+| 401    | Unauthorized                |
 
 ---
 
@@ -165,10 +165,10 @@ List all conversation threads for the authenticated user.
 
 ### Error Responses
 
-| Status | Condition       |
-|--------|-----------------|
-| 401    | Unauthorized    |
-| 500    | Server error    |
+| Status | Condition    |
+| ------ | ------------ |
+| 401    | Unauthorized |
+| 500    | Server error |
 
 ---
 
@@ -206,10 +206,10 @@ Messages follow LangChain message format. Types include `HumanMessage`, `AIMessa
 
 ### Error Responses
 
-| Status | Condition       |
-|--------|-----------------|
-| 401    | Unauthorized    |
-| 500    | Server error    |
+| Status | Condition    |
+| ------ | ------------ |
+| 401    | Unauthorized |
+| 500    | Server error |
 
 ---
 
@@ -229,7 +229,7 @@ Delete a conversation thread.
 ### Error Responses
 
 | Status | Condition        |
-|--------|------------------|
+| ------ | ---------------- |
 | 401    | Unauthorized     |
 | 404    | Thread not found |
 | 500    | Server error     |
@@ -252,20 +252,20 @@ OpenAI-compatible chat completion endpoint. Maintains message history per sessio
 }
 ```
 
-| Field       | Type   | Required | Description                                        |
-|-------------|--------|----------|----------------------------------------------------|
-| sessionId   | string | Yes      | Session identifier for history tracking            |
-| message     | string | Yes      | User message                                       |
-| config      | object | No       | Model configuration overrides                      |
-| tools       | array  | No       | OpenAI-format tool definitions                     |
-| toolResults | array  | No       | Tool call results from previous turn               |
+| Field       | Type   | Required | Description                             |
+| ----------- | ------ | -------- | --------------------------------------- |
+| sessionId   | string | Yes      | Session identifier for history tracking |
+| message     | string | Yes      | User message                            |
+| config      | object | No       | Model configuration overrides           |
+| tools       | array  | No       | OpenAI-format tool definitions          |
+| toolResults | array  | No       | Tool call results from previous turn    |
 
 Each entry in `toolResults`:
 
-| Field        | Type   | Description            |
-|--------------|--------|------------------------|
-| tool_call_id | string | ID of the tool call    |
-| content      | string | Result content         |
+| Field        | Type   | Description         |
+| ------------ | ------ | ------------------- |
+| tool_call_id | string | ID of the tool call |
+| content      | string | Result content      |
 
 ### Response `200 OK`
 
@@ -298,12 +298,12 @@ Each entry in `toolResults`:
 
 ### Error Responses
 
-| Status | Condition              |
-|--------|------------------------|
-| 400    | Invalid request data   |
-| 401    | Unauthorized           |
-| 429    | Rate limit exceeded    |
-| 500    | Server error           |
+| Status | Condition            |
+| ------ | -------------------- |
+| 400    | Invalid request data |
+| 401    | Unauthorized         |
+| 429    | Rate limit exceeded  |
+| 500    | Server error         |
 
 ---
 
@@ -376,10 +376,10 @@ Create a new API key.
 }
 ```
 
-| Field    | Type   | Required | Description                                               |
-|----------|--------|----------|-----------------------------------------------------------|
-| name     | string | No       | Label for the key (max 255 chars)                         |
-| duration | string | Yes      | One of: `thirty_days`, `ninety_days`, `one_year`          |
+| Field    | Type   | Required | Description                                      |
+| -------- | ------ | -------- | ------------------------------------------------ |
+| name     | string | No       | Label for the key (max 255 chars)                |
+| duration | string | Yes      | One of: `thirty_days`, `ninety_days`, `one_year` |
 
 **Response `201 Created`:**
 
