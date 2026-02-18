@@ -3,9 +3,15 @@
   "slug": "osori",
   "displayName": "Osori",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1770688693346,
-    "commit": "https://github.com/openclaw/skills/commit/482a1120da6d917d434f3373b9bbd87a42092d59"
+    "version": "1.6.1",
+    "publishedAt": 1771335097889,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1770688693346,
+      "commit": "https://github.com/openclaw/skills/commit/482a1120da6d917d434f3373b9bbd87a42092d59"
+    }
+  ]
 }
