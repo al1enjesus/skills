@@ -1,11 +1,6 @@
 ---
 name: book-cover-design
-description: |
-  Book cover design with genre-specific conventions, typography rules, and AI image generation.
-  Covers fiction and non-fiction genres, sizing, thumbnail testing, and iteration workflows.
-  Use for: self-publishing, ebook covers, print covers, audiobook covers, cover mockups.
-  Triggers: book cover, cover design, ebook cover, book art, novel cover, self publishing cover,
-  kindle cover, audiobook cover, book jacket, cover illustration, fiction cover, nonfiction cover
+description: "Book cover design with genre-specific conventions, typography rules, and AI image generation. Covers fiction and non-fiction genres, sizing, thumbnail testing, and iteration workflows. Use for: self-publishing, ebook covers, print covers, audiobook covers, cover mockups. Triggers: book cover, cover design, ebook cover, book art, novel cover, self publishing cover, kindle cover, audiobook cover, book jacket, cover illustration, fiction cover, nonfiction cover"
 allowed-tools: Bash(infsh *)
 ---
 
@@ -25,6 +20,8 @@ infsh app run falai/flux-dev-lora --input '{
   "height": 1248
 }'
 ```
+
+> **Install note:** The [install script](https://cli.inference.sh) only detects your OS/architecture, downloads the matching binary from `dist.inference.sh`, and verifies its SHA-256 checksum. No elevated permissions or background processes. [Manual install & verification](https://dist.inference.sh/cli/checksums.txt) available.
 
 ## Genre Conventions
 
@@ -212,9 +209,9 @@ infsh app run falai/topaz-image-upscaler --input '{
 ## Related Skills
 
 ```bash
-npx skills add inferencesh/skills@ai-image-generation
-npx skills add inferencesh/skills@prompt-engineering
-npx skills add inferencesh/skills@image-upscaling
+npx skills add inference-sh/skills@ai-image-generation
+npx skills add inference-sh/skills@prompt-engineering
+npx skills add inference-sh/skills@image-upscaling
 ```
 
 Browse all apps: `infsh app list`
