@@ -2,11 +2,18 @@
 name: visla
 description: Creates AI-generated videos from text scripts, URLs, or PPT/PDF documents using Visla. Use when the user asks to generate a video, turn a webpage into a video, or convert a PPT/PDF into a video, or when the user asks to check Visla account credits/balance.
 argument-hint: <script|url|doc|account> [script|URL|file]
+metadata:
+  clawdbot:
+    emoji: ""
+    requires:
+      env: ["VISLA_API_KEY", "VISLA_API_SECRET"]
+    primaryEnv: "VISLA_API_KEY"
+    files: ["scripts/*"]
 ---
 
 # Visla Video Generation
 
-**Version: 260211-1520**
+**Version: 260218-1410**
 
 Create AI-generated videos from text scripts, web URLs, or documents (PPT/PDF) using Visla's OpenAPI.
 
@@ -14,14 +21,16 @@ Create AI-generated videos from text scripts, web URLs, or documents (PPT/PDF) u
 
 **Credentials** (NEVER output API keys/secrets in responses):
 
-**IMPORTANT**: Always try to read the credentials file before asking the user for credentials.
+**IMPORTANT**: Only read local credential files with explicit user consent.
 
-1. Try to read `~/.config/visla/.credentials`
-2. If the file exists and contains valid credentials, use them directly (do NOT ask the user)
-3. Only if the file is missing or invalid, ask the user for credentials
-   - Tell the user: this is a one-time setup (once configured, they won't need to do this again)
-   - Tell the user: get API Key and Secret from https://www.visla.us/visla-api
-   - Ask for the API key/secret explicitly (or ask the user to update the file and confirm). Do not repeat the secrets back in the response.
+1. Ask the user for permission before reading `~/.config/visla/.credentials`
+2. If permission is granted and the file exists with valid credentials, use `--credentials-file ~/.config/visla/.credentials` with the **Python** CLI. The **Bash** CLI does not support `--credentials-file`, so use environment variables instead.
+3. If permission is denied, missing, or invalid, ask the user for credentials
+
+Only process local files (scripts/docs) explicitly provided by the user, and remind users to avoid uploading sensitive data.
+- Tell the user: this is a one-time setup (once configured, they won't need to do this again)
+- Tell the user: get API Key and Secret from https://www.visla.us/visla-api
+- Ask for the API key/secret explicitly (or ask the user to update the file and confirm). Do not repeat the secrets back in the response.
 
 Credential validity check (practical):
 
@@ -50,13 +59,17 @@ Default strategy:
 
 **Bash (recommended on macOS; also works on Linux-like environments)**:
 ```bash
-source ~/.config/visla/.credentials
+# With user consent, you may source ~/.config/visla/.credentials
+export VISLA_API_KEY="your_key"
+export VISLA_API_SECRET="your_secret"
 ./scripts/visla_cli.sh <command>
 ```
 
 **Python (cross-platform)**:
 ```bash
-python3 scripts/visla_cli.py <command>
+python3 scripts/visla_cli.py --key "your_key" --secret "your_secret" <command>
+# Or, with user consent:
+python3 scripts/visla_cli.py --credentials-file ~/.config/visla/.credentials <command>
 ```
 
 **Windows native** (PowerShell/CMD without Bash; Python):
@@ -80,10 +93,10 @@ Windows note:
   ```
 - If you have Python Launcher installed, `py -3 scripts/visla_cli.py <command>` may work better than `python`.
 - Credentials:
-  - The Python CLI will also try to read `~/.config/visla/.credentials` automatically if env vars are not set.
-  - On Windows this typically maps to: `%USERPROFILE%\\.config\\visla\\.credentials`.
+  - The Python CLI only reads a credentials file if `--credentials-file` is explicitly provided.
+  - On Windows the default path is typically: `%USERPROFILE%\\.config\\visla\\.credentials`.
 
-Note: do not print credentials. Prefer reading them from `~/.config/visla/.credentials` or environment variables.
+Note: do not print credentials. Prefer environment variables or `--credentials-file` with explicit user consent.
 
 ## Commands
 
@@ -141,5 +154,5 @@ The `script`, `url`, and `doc` commands execute the complete flow automatically:
 
 ## Output Format
 
-- **Start**: Display "Visla Skill v260211-1520" when skill begins
-- **End**: Display "Visla Skill v260211-1520 completed" when skill finishes
+- **Start**: Display "Visla Skill v260218-1410" when skill begins
+- **End**: Display "Visla Skill v260218-1410 completed" when skill finishes

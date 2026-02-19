@@ -5,7 +5,7 @@
 set -e
 
 BASE_URL="https://openapi.visla.us/openapi/v1"
-VERSION="260211-1520"
+VERSION="260218-1410"
 USER_AGENT="visla-skill/${VERSION}"
 
 # Tips to display during video generation

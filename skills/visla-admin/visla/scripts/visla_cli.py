@@ -52,7 +52,7 @@ except ImportError:
     print("Install: python3 -m pip install requests")
     sys.exit(1)
 
-VERSION = "260211-1520"
+VERSION = "260218-1410"
 USER_AGENT = f"visla-skill/{VERSION}"
 
 def classify_error_code(msg: str) -> str:
@@ -524,6 +524,10 @@ def main():
     parser = argparse.ArgumentParser(description=f"Visla Skill v{VERSION}")
     parser.add_argument("--key", help="API Key (or set VISLA_API_KEY env var)")
     parser.add_argument("--secret", help="API Secret (or set VISLA_API_SECRET env var)")
+    parser.add_argument(
+        "--credentials-file",
+        help="Path to credentials file (explicit opt-in; requires user consent)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Command")
 
@@ -548,12 +552,13 @@ def main():
     api_key = args.key or os.environ.get("VISLA_API_KEY")
     api_secret = args.secret or os.environ.get("VISLA_API_SECRET")
 
-    # Fallback: ~/.config/visla/.credentials (works on Windows too; file is parsed, not sourced)
-    if not api_key or not api_secret:
-        cred_path = os.path.expanduser("~/.config/visla/.credentials")
-        file_key, file_secret = load_credentials_from_file(cred_path)
-        api_key = api_key or file_key
-        api_secret = api_secret or file_secret
+    # Optional: read credentials file only when explicitly provided
+    if (not api_key or not api_secret) and args.credentials_file:
+        cred_path = os.path.expanduser(args.credentials_file)
+        if os.path.exists(cred_path):
+            file_key, file_secret = load_credentials_from_file(cred_path)
+            api_key = api_key or file_key
+            api_secret = api_secret or file_secret
 
     if not api_key or not api_secret:
         print("VISLA_CLI_ERROR_CODE=missing_credentials")
@@ -570,8 +575,9 @@ def main():
         print("Option 2: Pass as arguments")
         print('  python visla_cli.py --key "your_key" --secret "your_secret" <command>')
         print("")
-        print("Option 3: Create credentials file")
-        print('  ~/.config/visla/.credentials with lines like:')
+        print("Option 3: Use a credentials file (explicit opt-in)")
+        print("  Provide a file path with --credentials-file")
+        print("  Example file contents:")
         print('    export VISLA_API_KEY="your_key"')
         print('    export VISLA_API_SECRET="your_secret"')
         print("")
