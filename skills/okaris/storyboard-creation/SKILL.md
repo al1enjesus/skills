@@ -1,12 +1,6 @@
 ---
 name: storyboard-creation
-description: |
-  Film and video storyboarding with shot vocabulary, continuity rules, and panel layout.
-  Covers shot types, camera angles, movement, 180-degree rule, and annotation format.
-  Use for: video planning, film pre-production, ad storyboards, music video planning, animation.
-  Triggers: storyboard, storyboarding, shot list, film planning, video planning,
-  pre production, shot composition, camera angles, scene planning, visual script,
-  animatic, storyboard panels, video storyboard
+description: "Film and video storyboarding with shot vocabulary, continuity rules, and panel layout. Covers shot types, camera angles, movement, 180-degree rule, and annotation format. Use for: video planning, film pre-production, ad storyboards, music video planning, animation. Triggers: storyboard, storyboarding, shot list, film planning, video planning, pre production, shot composition, camera angles, scene planning, visual script, animatic, storyboard panels, video storyboard"
 allowed-tools: Bash(infsh *)
 ---
 
@@ -32,6 +26,8 @@ infsh app run infsh/stitch-images --input '{
   "direction": "horizontal"
 }'
 ```
+
+> **Install note:** The [install script](https://cli.inference.sh) only detects your OS/architecture, downloads the matching binary from `dist.inference.sh`, and verifies its SHA-256 checksum. No elevated permissions or background processes. [Manual install & verification](https://dist.inference.sh/cli/checksums.txt) available.
 
 ## Shot Types
 
@@ -260,10 +256,10 @@ infsh app run infsh/stitch-images --input '{
 ## Related Skills
 
 ```bash
-npx skills add inferencesh/skills@ai-image-generation
-npx skills add inferencesh/skills@ai-video-generation
-npx skills add inferencesh/skills@video-prompting-guide
-npx skills add inferencesh/skills@prompt-engineering
+npx skills add inference-sh/skills@ai-image-generation
+npx skills add inference-sh/skills@ai-video-generation
+npx skills add inference-sh/skills@video-prompting-guide
+npx skills add inference-sh/skills@prompt-engineering
 ```
 
 Browse all apps: `infsh app list`
