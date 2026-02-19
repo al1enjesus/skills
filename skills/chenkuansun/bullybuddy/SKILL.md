@@ -9,23 +9,22 @@ command-dispatch: tool
 command-tool: exec
 command-arg-mode: raw
 metadata:
-  {
-    "openclaw":
-      {
-        "emoji": "🦞",
-        "homepage": "https://github.com/ChenKuanSun/openclaw-bullybuddy",
-        "requires": { "bins": ["bullybuddy", "claude", "jq", "curl"] },
-        "install":
-          [
-            {
-              "id": "node",
-              "kind": "node",
-              "package": "openclaw-bullybuddy",
-              "bins": ["bullybuddy"],
-            },
-          ],
-      },
-  }
+  openclaw:
+    emoji: "🦞"
+    homepage: "https://github.com/ChenKuanSun/openclaw-bullybuddy"
+    requires:
+      bins:
+        - bullybuddy
+        - jq
+        - curl
+      config:
+        - "~/.bullybuddy/connection.json"
+    install:
+      - id: node
+        kind: node
+        package: openclaw-bullybuddy
+        bins:
+          - bullybuddy
 ---
 
 # BullyBuddy
