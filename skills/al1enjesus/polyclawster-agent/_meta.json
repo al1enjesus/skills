@@ -3,9 +3,9 @@
   "slug": "polyclawster-agent",
   "displayName": "polyclawster-agent",
   "latest": {
-    "version": "1.5.2",
-    "publishedAt": 1773136666133,
-    "commit": "https://github.com/openclaw/skills/commit/9a6da4d7277b169df061e3825692b9ba0e22e7fd"
+    "version": "1.6.2",
+    "publishedAt": 1773204368077,
+    "commit": "https://github.com/al1enjesus/polyclawster/commit/da529201"
   },
   "history": [
     {
